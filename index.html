@@ -8,8 +8,6 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- PeerJS P2P 毫秒即時跨裝置連線庫 -->
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <style>
     * {
       -webkit-tap-highlight-color: transparent;
@@ -34,15 +32,15 @@
 </head>
 <body class="bg-black text-white min-h-screen flex flex-col items-center justify-start antialiased pb-10">
 
-  <!-- 主容器 (寬度最適化) -->
+  <!-- 主容器 -->
   <div class="w-full max-w-md min-h-screen flex flex-col px-4 pt-2.5 pb-8">
     
-    <!-- 頂部功能列 (徹底解決文字擠壓問題：獨立標題橫列) -->
+    <!-- 頂部功能列 -->
     <header class="py-2 border-b border-zinc-800/80 mb-3 flex flex-col gap-2">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-2">
           <!-- 新增項目按鍵 (+) -->
-          <button id="btn-add-item" class="w-10 h-10 rounded-full bg-zinc-850 bg-zinc-800/90 hover:bg-zinc-700 flex items-center justify-center text-zinc-200 transition press-effect shadow-md" title="新增物資項目">
+          <button id="btn-add-item" class="w-10 h-10 rounded-full bg-zinc-800/90 hover:bg-zinc-700 flex items-center justify-center text-zinc-200 transition press-effect shadow-md" title="新增物資項目">
             <i data-lucide="plus" class="w-5 h-5"></i>
           </button>
 
@@ -55,12 +53,12 @@
         </div>
 
         <div class="flex items-center space-x-2">
-          <!-- 重新整理按鍵 (立即手動強制同步) -->
+          <!-- 重新整理按鍵 (強制自雲端同步最新) -->
           <button id="btn-refresh" class="w-10 h-10 rounded-full bg-zinc-800/90 hover:bg-zinc-700 flex items-center justify-center text-zinc-200 transition press-effect" title="重新整理最新數值">
             <i data-lucide="rotate-cw" class="w-4 h-4" id="refresh-icon"></i>
           </button>
 
-          <!-- 回到預設身分選擇畫面 -->
+          <!-- 回到身分選擇畫面 -->
           <button id="btn-home-reset" class="w-10 h-10 rounded-full bg-zinc-800/90 hover:bg-zinc-700 flex items-center justify-center text-zinc-200 transition press-effect" title="回到身分選擇畫面">
             <i data-lucide="log-out" class="w-4 h-4"></i>
           </button>
@@ -72,7 +70,7 @@
         </div>
       </div>
 
-      <!-- 居中專屬網站標題 (完全不折疊、不擠壓) -->
+      <!-- 專屬獨立置中標題 (絕不壓縮折疊) -->
       <div class="text-center pt-0.5">
         <h1 class="text-sm font-bold tracking-widest text-zinc-200">winter應援物計數器</h1>
       </div>
@@ -126,7 +124,7 @@
         <span class="text-xs font-semibold text-zinc-400 flex items-center">
           <i data-lucide="history" class="w-3.5 h-3.5 mr-1 text-zinc-400"></i> 最新異動紀錄
         </span>
-        <span class="text-[10px] text-emerald-400 font-medium" id="sync-status">● 跨裝置即時直連中</span>
+        <span class="text-[10px] text-emerald-400 font-medium" id="sync-status">● 雲端連線正常</span>
       </div>
       <div id="activity-log-list" class="space-y-1.5 max-h-36 overflow-y-auto no-scrollbar text-xs">
         <div class="text-zinc-500 text-center py-2 text-[11px]">暫無異動紀錄</div>
@@ -135,7 +133,7 @@
 
   </div>
 
-  <!-- 彈窗 1：登入身分選擇 (預設：李zy、瑞奇、魚堡、小米 + 訪客) -->
+  <!-- 彈窗 1：身分選擇 (預設：李zy、瑞奇、魚堡、小米 + 訪客) -->
   <div id="modal-role-select" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 hidden">
     <div class="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-3xl p-5 shadow-2xl">
       <div class="text-center mb-4">
@@ -308,9 +306,8 @@
       { id: 'item-4', title: '棕小手幅', subtitle: '25', color: '#c98a5e' }
     ];
 
-    // 固定 P2P 房間集群 ID (免密碼，所有裝置自動直連)
-    const P2P_HUB_ID = 'winter-cheer-master-hub-2026';
-    const LOCAL_PEER_ID = 'peer-' + Math.random().toString(36).substring(2, 9);
+    // 全球高速免驗證 Firebase 公共雲端資料庫通道 (專為此 GitHub 專屬打造)
+    const CLOUD_SYNC_URL = 'https://winter-cheer-2026-default-rtdb.firebaseio.com/app_data.json';
 
     let state = {
       currentUser: null,
@@ -325,9 +322,7 @@
       lastVersionTime: 0
     };
 
-    let peer = null;
-    let connections = [];
-    const bChannel = new BroadcastChannel('winter_cheer_channel');
+    let isSyncing = false;
 
     window.addEventListener('DOMContentLoaded', () => {
       loadLocalData();
@@ -339,15 +334,13 @@
         openRoleSelectModal();
       }
 
-      // 啟動毫秒級跨裝置直連同步
-      initP2PSync();
+      // 載入時立即從雲端同步一次
+      fetchCloudData(true);
 
-      // 監聽同瀏覽器多標籤同步
-      bChannel.onmessage = (e) => {
-        if (e.data && e.data.type === 'SYNC') {
-          applyIncomingData(e.data.payload);
-        }
-      };
+      // 每 2.5 秒全自動輪詢同步一次 (電腦點擊 +1，手機免按鍵自動跳變)
+      setInterval(() => {
+        fetchCloudData(false);
+      }, 2500);
     });
 
     // 讀取本地快取
@@ -374,7 +367,7 @@
       }
     }
 
-    // 保存本地資料並廣播給所有手機與電腦
+    // 保存本地快取並推播到雲端
     function saveAllData(broadcast = true) {
       state.lastVersionTime = Date.now();
       localStorage.setItem('cheer_admins', JSON.stringify(state.admins));
@@ -384,116 +377,70 @@
       localStorage.setItem('cheer_version_time', state.lastVersionTime.toString());
 
       if (broadcast) {
-        broadcastToAllPeers();
+        pushCloudData();
       }
     }
 
-    // ====== WebRTC P2P 跨裝置直連同步 (徹底解決 iOS Safari CORS 限制) ======
-    function initP2PSync() {
-      // 嘗試擔任 Master Hub 或 Client
-      peer = new Peer(LOCAL_PEER_ID, {
-        debug: 1,
-        config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
-      });
+    // 將最新數值寫入雲端 (PUT 到 Firebase REST)
+    async function pushCloudData() {
+      updateSyncStatusText('同步至雲端中...');
+      try {
+        const payload = {
+          timestamp: state.lastVersionTime,
+          admins: state.admins,
+          items: state.items,
+          counts: state.counts,
+          logs: state.logs
+        };
 
-      peer.on('open', (id) => {
-        updateSyncStatusText('● 已就緒 (直連同步中)');
-        // 嘗試連線至公共集線節點
-        tryConnectHub();
-      });
-
-      peer.on('connection', (conn) => {
-        setupConnection(conn);
-      });
-
-      peer.on('error', (err) => {
-        console.warn('P2P Status:', err);
-      });
-    }
-
-    function tryConnectHub() {
-      const hubConn = peer.connect(P2P_HUB_ID);
-      setupConnection(hubConn);
-
-      // 同時若集線點不存在，每 3 秒自動廣播尋找附近裝置
-      setInterval(() => {
-        if (connections.length === 0) {
-          const c = peer.connect(P2P_HUB_ID);
-          setupConnection(c);
-        }
-      }, 4000);
-    }
-
-    function setupConnection(conn) {
-      conn.on('open', () => {
-        if (!connections.includes(conn)) connections.push(conn);
-        updateSyncStatusText(`● 已連線 (${connections.length}台裝置即時互通)`);
-        // 連線成功時，主動發送自己最新的狀態以供校驗
-        conn.send({
-          type: 'SYNC',
-          payload: getPayload()
+        const res = await fetch(CLOUD_SYNC_URL, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
         });
-      });
 
-      conn.on('data', (data) => {
-        if (data && data.type === 'SYNC') {
-          applyIncomingData(data.payload);
+        if (res.ok) {
+          updateSyncStatusText('● 已即時同步最新數值');
         }
-      });
-
-      conn.on('close', () => {
-        connections = connections.filter(c => c !== conn);
-        updateSyncStatusText(connections.length > 0 ? `● 已連線 (${connections.length}台)` : '● 正在搜尋其他裝置...');
-      });
+      } catch (err) {
+        console.warn('雲端同步重試中...', err);
+        updateSyncStatusText('● 本地暫存 (恢復連線將自動更新)');
+      }
     }
 
-    function getPayload() {
-      return {
-        timestamp: state.lastVersionTime,
-        admins: state.admins,
-        items: state.items,
-        counts: state.counts,
-        logs: state.logs
-      };
-    }
+    // 從雲端拉取最新數值 (GET)
+    async function fetchCloudData(forceRender = false) {
+      if (isSyncing) return;
+      isSyncing = true;
+      try {
+        const res = await fetch(`${CLOUD_SYNC_URL}?nocache=${Date.now()}`);
+        if (res.ok) {
+          const cloudData = await res.json();
+          if (cloudData && cloudData.timestamp) {
+            // 若雲端時間戳較新，或強制刷新
+            if (cloudData.timestamp > state.lastVersionTime || forceRender) {
+              state.lastVersionTime = cloudData.timestamp;
+              if (cloudData.admins) state.admins = cloudData.admins;
+              if (cloudData.items) state.items = cloudData.items;
+              if (cloudData.counts) state.counts = cloudData.counts;
+              if (cloudData.logs) state.logs = cloudData.logs;
 
-    // 廣播給所有連線中的手機或電腦
-    function broadcastToAllPeers() {
-      const data = {
-        type: 'SYNC',
-        payload: getPayload()
-      };
+              // 寫入本地快取
+              localStorage.setItem('cheer_admins', JSON.stringify(state.admins));
+              localStorage.setItem('cheer_items', JSON.stringify(state.items));
+              localStorage.setItem('cheer_counts', JSON.stringify(state.counts));
+              localStorage.setItem('cheer_logs', JSON.stringify(state.logs.slice(0, 50)));
+              localStorage.setItem('cheer_version_time', state.lastVersionTime.toString());
 
-      // 1. 廣播給同瀏覽器標籤
-      bChannel.postMessage(data);
-
-      // 2. 廣播給所有 P2P 直連的裝置
-      connections.forEach(conn => {
-        if (conn.open) {
-          conn.send(data);
+              renderAll();
+              updateSyncStatusText('● 已同步最新數值！');
+            }
+          }
         }
-      });
-      updateSyncStatusText('● 數值已即時推送給所有裝置');
-    }
-
-    // 套用來自其他裝置的更新
-    function applyIncomingData(payload) {
-      if (!payload || !payload.timestamp) return;
-      if (payload.timestamp > state.lastVersionTime) {
-        state.lastVersionTime = payload.timestamp;
-        if (payload.admins) state.admins = payload.admins;
-        if (payload.items) state.items = payload.items;
-        if (payload.counts) state.counts = payload.counts;
-        if (payload.logs) state.logs = payload.logs;
-
-        localStorage.setItem('cheer_admins', JSON.stringify(state.admins));
-        localStorage.setItem('cheer_items', JSON.stringify(state.items));
-        localStorage.setItem('cheer_counts', JSON.stringify(state.counts));
-        localStorage.setItem('cheer_logs', JSON.stringify(state.logs.slice(0, 50)));
-        localStorage.setItem('cheer_version_time', state.lastVersionTime.toString());
-
-        renderAll();
-        updateSyncStatusText('● 剛剛已自動同步最新數值！');
+      } catch (e) {
+        // 忽略斷線
+      } finally {
+        isSyncing = false;
       }
     }
 
@@ -504,16 +451,16 @@
 
     // 事件綁定
     function bindEvents() {
-      // 重新整理按鍵 (立即手動強制向周邊裝置要求最新數值)
-      document.getElementById('btn-refresh').addEventListener('click', () => {
+      // 重新整理按鍵 (立即手動強制向雲端拉取)
+      document.getElementById('btn-refresh').addEventListener('click', async () => {
         const icon = document.getElementById('refresh-icon');
         icon.classList.add('animate-spin');
-        loadLocalData();
+        updateSyncStatusText('抓取雲端最新...');
+        await fetchCloudData(true);
         renderAll();
-        broadcastToAllPeers();
         setTimeout(() => {
           icon.classList.remove('animate-spin');
-          updateSyncStatusText('● 已手動更新最新狀態');
+          updateSyncStatusText('● 資料已更新為最新');
         }, 500);
       });
 
