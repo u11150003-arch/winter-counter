@@ -8,6 +8,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Pusher 官方即時通訊庫 (支援 iOS Safari & 跨裝置 WebSocket) -->
+  <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
   <style>
     * {
       -webkit-tap-highlight-color: transparent;
@@ -35,7 +37,7 @@
   <!-- 主容器 -->
   <div class="w-full max-w-md min-h-screen flex flex-col px-4 pt-2.5 pb-8">
     
-    <!-- 頂部功能列 -->
+    <!-- 頂部功能列 (分層佈局，手機標題不折疊) -->
     <header class="py-2 border-b border-zinc-800/80 mb-3 flex flex-col gap-2">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-2">
@@ -53,7 +55,7 @@
         </div>
 
         <div class="flex items-center space-x-2">
-          <!-- 重新整理按鍵 -->
+          <!-- 重新整理按鍵 (立即向線上裝置廣播索取最新資料) -->
           <button id="btn-refresh" class="w-10 h-10 rounded-full bg-zinc-800/90 hover:bg-zinc-700 flex items-center justify-center text-zinc-200 transition press-effect" title="重新整理最新數值">
             <i data-lucide="rotate-cw" class="w-4 h-4" id="refresh-icon"></i>
           </button>
@@ -70,7 +72,7 @@
         </div>
       </div>
 
-      <!-- 居中專屬獨立標題 -->
+      <!-- 專屬獨立置中標題 -->
       <div class="text-center pt-0.5">
         <h1 class="text-sm font-bold tracking-widest text-zinc-200">winter應援物計數器</h1>
       </div>
@@ -133,7 +135,7 @@
 
   </div>
 
-  <!-- 彈窗 1：身分選擇 -->
+  <!-- 彈窗 1：身分選擇 (預設：李zy、瑞奇、魚堡、小米 + 訪客) -->
   <div id="modal-role-select" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 hidden">
     <div class="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-3xl p-5 shadow-2xl">
       <div class="text-center mb-4">
@@ -306,10 +308,6 @@
       { id: 'item-4', title: '棕小手幅', subtitle: '25', color: '#c98a5e' }
     ];
 
-    // 全球高速 Supabase REST 端點 (完全無 CORS 限制、支援 iOS 5G 行動網路)
-    const SUPABASE_URL = 'https://nknuhvshhszwygxaxlyw.supabase.co/rest/v1/cheer_store?id=eq.winter_master';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rbnVodnNoaHN6d3lneGF4bHl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwMDAwMDAsImV4cCI6MjA1NTYwMDAwMH0.1vT828b8S3G8q6Rz87m3x5kK208Yh63uD0j-V7sQ_00';
-
     let state = {
       currentUser: null,
       isGuest: false,
@@ -323,7 +321,8 @@
       lastVersionTime: 0
     };
 
-    let isSyncing = false;
+    let pusher = null;
+    let channel = null;
 
     window.addEventListener('DOMContentLoaded', () => {
       loadLocalData();
@@ -335,13 +334,8 @@
         openRoleSelectModal();
       }
 
-      // 載入即時拉取
-      pullCloudData(true);
-
-      // 每 2 秒自動背景靜態輪詢
-      setInterval(() => {
-        pullCloudData(false);
-      }, 2000);
+      // 初始化無受阻的 WebSocket 跨裝置同步
+      initPusherWebSocket();
     });
 
     function loadLocalData() {
@@ -367,104 +361,82 @@
       }
     }
 
-    function saveAllData(broadcast = true) {
+    function saveLocalOnly() {
       state.lastVersionTime = Date.now();
       localStorage.setItem('cheer_admins', JSON.stringify(state.admins));
       localStorage.setItem('cheer_items', JSON.stringify(state.items));
       localStorage.setItem('cheer_counts', JSON.stringify(state.counts));
       localStorage.setItem('cheer_logs', JSON.stringify(state.logs.slice(0, 50)));
       localStorage.setItem('cheer_version_time', state.lastVersionTime.toString());
+    }
 
-      if (broadcast) {
-        pushCloudData();
+    // ====== Pusher WebSocket 即時傳輸 (支援 iOS Safari、Android、電腦) ======
+    function initPusherWebSocket() {
+      try {
+        pusher = new Pusher('a6b659c44569527f3d32', {
+          cluster: 'ap3',
+          forceTLS: true
+        });
+
+        channel = pusher.subscribe('winter-cheer-room');
+
+        pusher.connection.bind('connected', () => {
+          updateSyncStatusText('● 即時雲端已連線');
+          // 連線成功時主動廣播請求線上裝置最新資料
+          channel.trigger('client-request-sync', { reqTime: Date.now() });
+        });
+
+        // 接收其他裝置的同步廣播
+        channel.bind('client-data-sync', (data) => {
+          if (data && data.payload && data.payload.timestamp > state.lastVersionTime) {
+            applyPayload(data.payload);
+            updateSyncStatusText('● 已收到最新數值！');
+          }
+        });
+
+        // 線上裝置被請求最新資料時回應
+        channel.bind('client-request-sync', () => {
+          if (state.lastVersionTime > 0) {
+            broadcastState();
+          }
+        });
+
+      } catch (e) {
+        console.warn('WebSocket 初始化:', e);
       }
     }
 
-    // 發送到雲端 (PATCH)
-    async function pushCloudData() {
-      updateSyncStatusText('正在推送到雲端...');
-      try {
-        const payload = {
-          data: {
+    // 廣播給其他裝置
+    function broadcastState() {
+      if (channel) {
+        channel.trigger('client-data-sync', {
+          payload: {
             timestamp: state.lastVersionTime,
             admins: state.admins,
             items: state.items,
             counts: state.counts,
             logs: state.logs
           }
-        };
-
-        const res = await fetch(SUPABASE_URL, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            'Prefer': 'return=minimal'
-          },
-          body: JSON.stringify(payload)
         });
-
-        if (res.ok) {
-          updateSyncStatusText('● 已即時同步最新數值');
-        } else {
-          // 如果紀錄尚不存在，則進行 POST 新增
-          await fetch('https://nknuhvshhszwygxaxlyw.supabase.co/rest/v1/cheer_store', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': SUPABASE_KEY,
-              'Authorization': `Bearer ${SUPABASE_KEY}`
-            },
-            body: JSON.stringify({ id: 'winter_master', data: payload.data })
-          });
-          updateSyncStatusText('● 已同步最新數值');
-        }
-      } catch (err) {
-        // 備用快顯
-        updateSyncStatusText('● 本地暫存');
       }
+      updateSyncStatusText('● 已即時同步給其他裝置');
     }
 
-    // 從雲端拉取 (GET)
-    async function pullCloudData(forceRender = false) {
-      if (isSyncing) return;
-      isSyncing = true;
-      try {
-        const res = await fetch(SUPABASE_URL, {
-          method: 'GET',
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`
-          }
-        });
+    function applyPayload(payload) {
+      state.lastVersionTime = payload.timestamp;
+      if (payload.admins) state.admins = payload.admins;
+      if (payload.items) state.items = payload.items;
+      if (payload.counts) state.counts = payload.counts;
+      if (payload.logs) state.logs = payload.logs;
 
-        if (res.ok) {
-          const list = await res.json();
-          if (list && list.length > 0 && list[0].data) {
-            const cloud = list[0].data;
-            if (cloud.timestamp > state.lastVersionTime || forceRender) {
-              state.lastVersionTime = cloud.timestamp;
-              if (cloud.admins) state.admins = cloud.admins;
-              if (cloud.items) state.items = cloud.items;
-              if (cloud.counts) state.counts = cloud.counts;
-              if (cloud.logs) state.logs = cloud.logs;
+      saveLocalOnly();
+      renderAll();
+    }
 
-              localStorage.setItem('cheer_admins', JSON.stringify(state.admins));
-              localStorage.setItem('cheer_items', JSON.stringify(state.items));
-              localStorage.setItem('cheer_counts', JSON.stringify(state.counts));
-              localStorage.setItem('cheer_logs', JSON.stringify(state.logs.slice(0, 50)));
-              localStorage.setItem('cheer_version_time', state.lastVersionTime.toString());
-
-              renderAll();
-              updateSyncStatusText('● 已是最新數值');
-            }
-          }
-        }
-      } catch (e) {
-        // 網絡緩衝
-      } finally {
-        isSyncing = false;
+    function saveAllData(broadcast = true) {
+      saveLocalOnly();
+      if (broadcast) {
+        broadcastState();
       }
     }
 
@@ -476,15 +448,16 @@
     // 事件綁定
     function bindEvents() {
       // 重新整理
-      document.getElementById('btn-refresh').addEventListener('click', async () => {
+      document.getElementById('btn-refresh').addEventListener('click', () => {
         const icon = document.getElementById('refresh-icon');
         icon.classList.add('animate-spin');
-        updateSyncStatusText('抓取雲端最新...');
-        await pullCloudData(true);
-        renderAll();
+        updateSyncStatusText('索取最新資料中...');
+        if (channel) {
+          channel.trigger('client-request-sync', { reqTime: Date.now() });
+        }
         setTimeout(() => {
           icon.classList.remove('animate-spin');
-          updateSyncStatusText('● 已是最新數值');
+          updateSyncStatusText('● 已更新');
         }, 500);
       });
 
@@ -691,7 +664,7 @@
 
       tabToday.addEventListener('click', () => {
         state.viewMode = 'today';
-        state.currentDate = '2026-10-17'; // 預設今天為17號
+        state.currentDate = '2026-10-17';
         tabToday.className = 'py-2 text-xs font-semibold rounded-xl transition bg-zinc-800 text-white shadow-sm';
         tabAll.className = 'py-2 text-xs font-semibold rounded-xl transition text-zinc-400 hover:text-zinc-200';
         renderDateBar();
