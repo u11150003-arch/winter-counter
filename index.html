@@ -8,8 +8,6 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- Pusher 官方即時通訊庫 (支援 iOS Safari & 跨裝置 WebSocket) -->
-  <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
   <style>
     * {
       -webkit-tap-highlight-color: transparent;
@@ -37,7 +35,7 @@
   <!-- 主容器 -->
   <div class="w-full max-w-md min-h-screen flex flex-col px-4 pt-2.5 pb-8">
     
-    <!-- 頂部功能列 (分層佈局，手機標題不折疊) -->
+    <!-- 頂部功能列 (分層佈局) -->
     <header class="py-2 border-b border-zinc-800/80 mb-3 flex flex-col gap-2">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-2">
@@ -72,7 +70,7 @@
         </div>
       </div>
 
-      <!-- 專屬獨立置中標題 -->
+      <!-- 居中專屬獨立標題 -->
       <div class="text-center pt-0.5">
         <h1 class="text-sm font-bold tracking-widest text-zinc-200">winter應援物計數器</h1>
       </div>
@@ -126,7 +124,7 @@
         <span class="text-xs font-semibold text-zinc-400 flex items-center">
           <i data-lucide="history" class="w-3.5 h-3.5 mr-1 text-zinc-400"></i> 最新異動紀錄
         </span>
-        <span class="text-[10px] text-emerald-400 font-medium" id="sync-status">● 雲端已連線</span>
+        <span class="text-[10px] text-emerald-400 font-medium" id="sync-status">● 連線準備中...</span>
       </div>
       <div id="activity-log-list" class="space-y-1.5 max-h-36 overflow-y-auto no-scrollbar text-xs">
         <div class="text-zinc-500 text-center py-2 text-[11px]">暫無異動紀錄</div>
@@ -135,7 +133,7 @@
 
   </div>
 
-  <!-- 彈窗 1：身分選擇 (預設：李zy、瑞奇、魚堡、小米 + 訪客) -->
+  <!-- 彈窗 1：身分選擇 -->
   <div id="modal-role-select" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 hidden">
     <div class="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-3xl p-5 shadow-2xl">
       <div class="text-center mb-4">
@@ -321,8 +319,8 @@
       lastVersionTime: 0
     };
 
-    let pusher = null;
-    let channel = null;
+    let ws = null;
+    let wsConnected = false;
 
     window.addEventListener('DOMContentLoaded', () => {
       loadLocalData();
@@ -334,8 +332,8 @@
         openRoleSelectModal();
       }
 
-      // 初始化無受阻的 WebSocket 跨裝置同步
-      initPusherWebSocket();
+      // 初始化原生 WebSocket 跨裝置同步
+      connectWebSocket();
     });
 
     function loadLocalData() {
@@ -362,7 +360,6 @@
     }
 
     function saveLocalOnly() {
-      state.lastVersionTime = Date.now();
       localStorage.setItem('cheer_admins', JSON.stringify(state.admins));
       localStorage.setItem('cheer_items', JSON.stringify(state.items));
       localStorage.setItem('cheer_counts', JSON.stringify(state.counts));
@@ -370,56 +367,77 @@
       localStorage.setItem('cheer_version_time', state.lastVersionTime.toString());
     }
 
-    // ====== Pusher WebSocket 即時傳輸 (支援 iOS Safari、Android、電腦) ======
-    function initPusherWebSocket() {
+    // ====== 原生 WebSocket 跨裝置即時通訊 (完全避開 CORS / 跨域阻擋) ======
+    function connectWebSocket() {
+      updateSyncStatusText('● 連線中...');
       try {
-        pusher = new Pusher('a6b659c44569527f3d32', {
-          cluster: 'ap3',
-          forceTLS: true
-        });
+        // 使用無阻礙的公開 WebSocket 群組通道
+        ws = new WebSocket('wss://free.blr2.piesocket.com/v3/winter_cheer_2026?api_key=VCXCEuvhGcBDP7XhiJJUDvR1e1D3eiVjgZ9VRiaV&notify_self=0');
 
-        channel = pusher.subscribe('winter-cheer-room');
+        ws.onopen = () => {
+          wsConnected = true;
+          updateSyncStatusText('● 即時直連中 (已同步)');
+          // 連線成功時主動向線上其他裝置索取最新數值
+          sendMessage({ action: 'REQ_SYNC' });
+        };
 
-        pusher.connection.bind('connected', () => {
-          updateSyncStatusText('● 即時雲端已連線');
-          // 連線成功時主動廣播請求線上裝置最新資料
-          channel.trigger('client-request-sync', { reqTime: Date.now() });
-        });
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.action === 'REQ_SYNC') {
+              // 當有新裝置進來索取，我如果是擁有最新資料者，便廣播回應
+              if (state.lastVersionTime > 0) {
+                sendMessage({ action: 'RES_SYNC', payload: getFullPayload() });
+              }
+            } else if (data.action === 'RES_SYNC' || data.action === 'UPDATE') {
+              if (data.payload && data.payload.timestamp > state.lastVersionTime) {
+                applyPayload(data.payload);
+                updateSyncStatusText('● 數值剛已自動跳動更新！');
+              }
+            }
+          } catch (err) {}
+        };
 
-        // 接收其他裝置的同步廣播
-        channel.bind('client-data-sync', (data) => {
-          if (data && data.payload && data.payload.timestamp > state.lastVersionTime) {
-            applyPayload(data.payload);
-            updateSyncStatusText('● 已收到最新數值！');
-          }
-        });
+        ws.onclose = () => {
+          wsConnected = false;
+          updateSyncStatusText('● 重新連線中...');
+          setTimeout(connectWebSocket, 2000); // 斷線 2 秒內自動重連
+        };
 
-        // 線上裝置被請求最新資料時回應
-        channel.bind('client-request-sync', () => {
-          if (state.lastVersionTime > 0) {
-            broadcastState();
-          }
-        });
+        ws.onerror = () => {
+          wsConnected = false;
+          updateSyncStatusText('● 連線重試中...');
+        };
 
       } catch (e) {
-        console.warn('WebSocket 初始化:', e);
+        updateSyncStatusText('● 本地暫存');
       }
     }
 
-    // 廣播給其他裝置
-    function broadcastState() {
-      if (channel) {
-        channel.trigger('client-data-sync', {
-          payload: {
-            timestamp: state.lastVersionTime,
-            admins: state.admins,
-            items: state.items,
-            counts: state.counts,
-            logs: state.logs
-          }
-        });
+    function sendMessage(msgObj) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(msgObj));
       }
-      updateSyncStatusText('● 已即時同步給其他裝置');
+    }
+
+    function getFullPayload() {
+      return {
+        timestamp: state.lastVersionTime,
+        admins: state.admins,
+        items: state.items,
+        counts: state.counts,
+        logs: state.logs
+      };
+    }
+
+    function broadcastChange() {
+      state.lastVersionTime = Date.now();
+      saveLocalOnly();
+      sendMessage({
+        action: 'UPDATE',
+        payload: getFullPayload()
+      });
+      updateSyncStatusText('● 已即時廣播更新');
     }
 
     function applyPayload(payload) {
@@ -431,13 +449,6 @@
 
       saveLocalOnly();
       renderAll();
-    }
-
-    function saveAllData(broadcast = true) {
-      saveLocalOnly();
-      if (broadcast) {
-        broadcastState();
-      }
     }
 
     function updateSyncStatusText(msg) {
@@ -452,12 +463,10 @@
         const icon = document.getElementById('refresh-icon');
         icon.classList.add('animate-spin');
         updateSyncStatusText('索取最新資料中...');
-        if (channel) {
-          channel.trigger('client-request-sync', { reqTime: Date.now() });
-        }
+        sendMessage({ action: 'REQ_SYNC' });
         setTimeout(() => {
           icon.classList.remove('animate-spin');
-          updateSyncStatusText('● 已更新');
+          updateSyncStatusText('● 數值已是最新');
         }, 500);
       });
 
@@ -481,7 +490,7 @@
         if (!name) return;
         if (!state.admins.includes(name)) {
           state.admins.push(name);
-          saveAllData();
+          broadcastChange();
           renderRoleSelectList();
           input.value = '';
         } else {
@@ -554,7 +563,7 @@
           addLog(state.currentUser, `新增項目【${title}】`);
         }
 
-        saveAllData();
+        broadcastChange();
         renderItems();
         renderLogs();
 
@@ -596,7 +605,7 @@
           state.items[idx].color = editItemColor;
 
           addLog(state.currentUser, `修改項目設定【${newTitle}】`);
-          saveAllData();
+          broadcastChange();
           renderItems();
           document.getElementById('modal-edit-item').classList.add('hidden');
         }
@@ -611,7 +620,7 @@
           state.items[idx] = state.items[idx - 1];
           state.items[idx - 1] = temp;
           addLog(state.currentUser, `調整順序：【${temp.title}】往上移`);
-          saveAllData();
+          broadcastChange();
           renderItems();
         } else {
           alert('已經在最上方了');
@@ -627,7 +636,7 @@
           state.items[idx] = state.items[idx + 1];
           state.items[idx + 1] = temp;
           addLog(state.currentUser, `調整順序：【${temp.title}】往下移`);
-          saveAllData();
+          broadcastChange();
           renderItems();
         } else {
           alert('已經在最下方了');
@@ -747,7 +756,7 @@
           }
           if (confirm(`確定移除管理者【${admin}】嗎？`)) {
             state.admins = state.admins.filter(a => a !== admin);
-            saveAllData();
+            broadcastChange();
             renderSettingsAdminList();
             renderRoleSelectList();
           }
@@ -821,7 +830,7 @@
       
       addLog(state.currentUser, `調整【${itemName}】: ${changeText} 份 (現為 ${newCount} 份)`);
 
-      saveAllData();
+      broadcastChange();
       renderItems();
       renderLogs();
     }
@@ -951,7 +960,7 @@
             if (confirm(`確定要刪除物資卡片【${item.title}】嗎？`)) {
               state.items = state.items.filter(i => i.id !== item.id);
               addLog(state.currentUser, `刪除物資卡片【${item.title}】`);
-              saveAllData();
+              broadcastChange();
               renderItems();
               renderLogs();
             }
