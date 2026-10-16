@@ -32,7 +32,7 @@
 </head>
 <body class="bg-black text-white min-h-screen flex flex-col items-center justify-start antialiased pb-10">
 
-  <!-- 主容器 -->
+  <!-- 主容器 (手機寬度最適化) -->
   <div class="w-full max-w-md min-h-screen flex flex-col px-4 pt-3 pb-8">
     
     <!-- 頂部功能導覽列 -->
@@ -43,7 +43,7 @@
           <i data-lucide="plus" class="w-5 h-5"></i>
         </button>
 
-        <!-- 管理者身分切換 -->
+        <!-- 管理者身分切換標籤 -->
         <button id="btn-switch-user" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-zinc-800/90 hover:bg-zinc-700 border border-zinc-700/60 transition press-effect">
           <span id="role-badge-dot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
           <span id="current-user-name" class="text-xs font-semibold text-zinc-200 truncate max-w-[85px]">選擇身分</span>
@@ -51,19 +51,19 @@
         </button>
       </div>
 
-      <div class="flex items-center space-x-2">
-        <!-- 雲端房間 / 多裝置同步設定 -->
-        <button id="btn-open-cloud" class="w-10 h-10 rounded-full bg-zinc-800/90 hover:bg-zinc-700 flex items-center justify-center text-emerald-400 transition press-effect" title="雲端跨裝置連線">
-          <i data-lucide="cloud" class="w-4 h-4"></i>
-        </button>
+      <!-- 網站標題 -->
+      <div class="text-xs font-bold tracking-wider text-zinc-300">
+        winter應援物計數器
+      </div>
 
-        <!-- 重新整理按鍵 (立即自雲端與本機同步最新) -->
+      <div class="flex items-center space-x-2">
+        <!-- 重新整理按鍵 (立即自雲端拉取最新數值) -->
         <button id="btn-refresh" class="w-10 h-10 rounded-full bg-zinc-800/90 hover:bg-zinc-700 flex items-center justify-center text-zinc-200 transition press-effect" title="重新整理最新數值">
           <i data-lucide="rotate-cw" class="w-4 h-4" id="refresh-icon"></i>
         </button>
 
         <!-- 回到預設身分選擇畫面 -->
-        <button id="btn-home-reset" class="w-10 h-10 rounded-full bg-zinc-800/90 hover:bg-zinc-700 flex items-center justify-center text-zinc-200 transition press-effect" title="回到預設身分選擇畫面">
+        <button id="btn-home-reset" class="w-10 h-10 rounded-full bg-zinc-800/90 hover:bg-zinc-700 flex items-center justify-center text-zinc-200 transition press-effect" title="回到身分選擇畫面">
           <i data-lucide="log-out" class="w-4 h-4"></i>
         </button>
 
@@ -74,7 +74,7 @@
       </div>
     </header>
 
-    <!-- 日期選擇與星期幾顯示條 (預設 10月17日 星期六) -->
+    <!-- 日期選擇與星期幾顯示條 (預設 17日 星期六) -->
     <div class="flex items-center justify-between bg-zinc-900/90 border border-zinc-800/80 px-3.5 py-2.5 rounded-2xl mb-3 shadow-inner">
       <button id="btn-prev-day" class="p-1.5 rounded-xl hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition press-effect">
         <i data-lucide="chevron-left" class="w-5 h-5"></i>
@@ -110,7 +110,7 @@
         <i data-lucide="shield-alert" class="w-4 h-4"></i>
         <span>目前為<strong>訪客模式</strong>：僅供查看，無法修改數值。</span>
       </div>
-      <button id="btn-banner-login" class="text-[11px] underline text-amber-300 hover:text-amber-100">切換身分</button>
+      <button id="btn-banner-login" class="text-[11px] underline text-amber-300 hover:text-amber-100">切換管理者</button>
     </div>
 
     <!-- 計數器卡片列表區 -->
@@ -122,7 +122,7 @@
         <span class="text-xs font-semibold text-zinc-400 flex items-center">
           <i data-lucide="history" class="w-3.5 h-3.5 mr-1 text-zinc-400"></i> 最新異動紀錄
         </span>
-        <span class="text-[10px] text-zinc-500" id="sync-status">● 雲端即時連線中</span>
+        <span class="text-[10px] text-emerald-400 font-medium" id="sync-status">● 雲端即時連線中</span>
       </div>
       <div id="activity-log-list" class="space-y-1.5 max-h-36 overflow-y-auto no-scrollbar text-xs">
         <div class="text-zinc-500 text-center py-2 text-[11px]">暫無異動紀錄</div>
@@ -131,7 +131,7 @@
 
   </div>
 
-  <!-- 彈窗 1：登入與管理者身分選擇 (預設李zy、瑞奇、魚堡、小米 + 訪客) -->
+  <!-- 彈窗 1：登入與身分選擇 (預設：李zy、瑞奇、魚堡、小米 + 訪客) -->
   <div id="modal-role-select" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 hidden">
     <div class="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-3xl p-5 shadow-2xl">
       <div class="text-center mb-4">
@@ -163,7 +163,7 @@
     </div>
   </div>
 
-  <!-- 彈窗 2：編輯已有項目 (文字、顏色、上移/下移順序) -->
+  <!-- 彈窗 2：編輯已有項目 (修改文字、更換顏色、上下排序) -->
   <div id="modal-edit-item" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 hidden">
     <div class="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-3xl p-5 shadow-2xl">
       <div class="flex items-center justify-between mb-4">
@@ -204,16 +204,16 @@
           </div>
         </div>
 
-        <!-- 調整排序按鍵 -->
+        <!-- 上下排序調整 -->
         <div class="pt-2">
           <label class="block text-xs font-medium text-zinc-400 mb-1.5">調整顯示順序</label>
           <div class="grid grid-cols-2 gap-2">
-            <button id="btn-move-up" class="py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold flex items-center justify-center space-x-1 press-effect">
-              <i data-lucide="arrow-up" class="w-4 h-4"></i>
+            <button id="btn-move-up" class="py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold flex items-center justify-center space-x-1.5 press-effect">
+              <i data-lucide="arrow-up" class="w-4 h-4 text-emerald-400"></i>
               <span>往上移一層</span>
             </button>
-            <button id="btn-move-down" class="py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold flex items-center justify-center space-x-1 press-effect">
-              <i data-lucide="arrow-down" class="w-4 h-4"></i>
+            <button id="btn-move-down" class="py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold flex items-center justify-center space-x-1.5 press-effect">
+              <i data-lucide="arrow-down" class="w-4 h-4 text-emerald-400"></i>
               <span>往下移一層</span>
             </button>
           </div>
@@ -226,7 +226,7 @@
     </div>
   </div>
 
-  <!-- 彈窗 3：新增項目 Modal -->
+  <!-- 彈窗 3：新增物資項目 Modal -->
   <div id="modal-add-item" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 hidden">
     <div class="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-3xl p-5 shadow-2xl">
       <div class="flex items-center justify-between mb-4">
@@ -277,37 +277,7 @@
     </div>
   </div>
 
-  <!-- 彈窗 4：跨裝置雲端同步連線設定 (解決手機電腦不同步) -->
-  <div id="modal-cloud-sync" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 hidden">
-    <div class="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-3xl p-5 shadow-2xl">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-base font-bold text-white flex items-center">
-          <i data-lucide="cloud" class="w-4 h-4 mr-2 text-emerald-400"></i> 跨裝置同步房間
-        </h3>
-        <button id="btn-close-cloud-modal" class="p-1 rounded-full text-zinc-400 hover:text-white">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-      <p class="text-xs text-zinc-400 mb-3 leading-relaxed">
-        電腦與手機只要填寫相同的「同步房間代碼」，任何一邊修改，其他裝置便會即時更新！
-      </p>
-
-      <div class="space-y-3">
-        <div>
-          <label class="block text-xs text-zinc-400 mb-1">同步房間代碼 (自訂英數，例: cheer2026)</label>
-          <div class="flex space-x-2">
-            <input type="text" id="input-room-id" placeholder="cheer2026" class="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-emerald-400 font-mono font-bold focus:outline-none">
-            <button id="btn-apply-room" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold press-effect">連接</button>
-          </div>
-        </div>
-        <div class="p-3 bg-zinc-950 rounded-xl text-[11px] text-zinc-400 border border-zinc-800/80">
-          💡 目前連線狀態：<span id="cloud-connection-text" class="text-emerald-400 font-medium">連線正常（自動即時輪詢）</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 彈窗 5：管理者人員管理 Modal -->
+  <!-- 彈窗 4：管理者人員名單 Modal -->
   <div id="modal-admin-settings" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 hidden">
     <div class="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-3xl p-5 shadow-2xl">
       <div class="flex items-center justify-between mb-3">
@@ -327,7 +297,10 @@
 
   <!-- 核心 JavaScript 邏輯 -->
   <script>
+    // 預設管理者名單
     const DEFAULT_ADMINS = ['李zy', '瑞奇', '魚堡', '小米'];
+    
+    // 預設應援品項 (符合圖片配色與文字)
     const DEFAULT_ITEMS = [
       { id: 'item-1', title: '應援禮包', subtitle: '含袋 50', color: '#1db58e' },
       { id: 'item-2', title: '基本應援禮包', subtitle: '不含袋 50', color: '#af83d8' },
@@ -335,21 +308,23 @@
       { id: 'item-4', title: '棕小手幅', subtitle: '25', color: '#c98a5e' }
     ];
 
-    // 全域狀態：天數預設從 2026-10-17 開始
+    // 固定全域頻道 (所有手機與電腦自動連線此頻道，徹底免輸密碼)
+    const SYNC_TOPIC = 'winter_cheer_live_2026';
+
     let state = {
       currentUser: null,
       isGuest: false,
-      currentDate: '2026-10-17',
+      currentDate: '2026-10-17', // 預設從 17 號開始
       viewMode: 'today',
       admins: [],
       items: [],
       counts: {},
       logs: [],
       selectedColor: '#1db58e',
-      roomId: localStorage.getItem('cheer_room_id') || 'cheer2026'
+      lastVersionTime: 0
     };
 
-    let isCloudUpdating = false;
+    let eventSource = null;
 
     window.addEventListener('DOMContentLoaded', () => {
       loadLocalData();
@@ -361,12 +336,11 @@
         openRoleSelectModal();
       }
 
-      // 啟動雲端多裝置即時同步
-      fetchFromCloud();
-      setInterval(fetchFromCloud, 3500); // 每 3.5 秒自動同步電腦/手機
+      // 啟動全自動跨裝置即時串流同步 (SSE)
+      startRealtimeSync();
     });
 
-    // 讀取本地儲存
+    // 讀取本地快取
     function loadLocalData() {
       const storedAdmins = localStorage.getItem('cheer_admins');
       state.admins = storedAdmins ? JSON.parse(storedAdmins) : [...DEFAULT_ADMINS];
@@ -380,6 +354,9 @@
       const storedLogs = localStorage.getItem('cheer_logs');
       state.logs = storedLogs ? JSON.parse(storedLogs) : [];
 
+      const storedVersion = localStorage.getItem('cheer_version_time');
+      state.lastVersionTime = storedVersion ? parseInt(storedVersion, 10) : 0;
+
       const storedUser = sessionStorage.getItem('cheer_current_user');
       if (storedUser) {
         state.currentUser = storedUser;
@@ -387,78 +364,140 @@
       }
     }
 
-    function saveLocalData() {
+    // 保存本地資料
+    function saveLocalData(triggerCloud = true) {
+      state.lastVersionTime = Date.now();
       localStorage.setItem('cheer_admins', JSON.stringify(state.admins));
       localStorage.setItem('cheer_items', JSON.stringify(state.items));
       localStorage.setItem('cheer_counts', JSON.stringify(state.counts));
       localStorage.setItem('cheer_logs', JSON.stringify(state.logs.slice(0, 50)));
-      pushToCloud();
-    }
+      localStorage.setItem('cheer_version_time', state.lastVersionTime.toString());
 
-    // ====== 免費免密鑰雲端同步機制 (使用 KV 雲端 API 讓手機與電腦連線) ======
-    async function fetchFromCloud() {
-      if (isCloudUpdating) return;
-      try {
-        const res = await fetch(`https://api.counterapi.dev/v1/cheer_${state.roomId}/data/`);
-        // 使用 countapi 或模擬同步通道
-      } catch (e) {
-        // 離線回退
+      if (triggerCloud) {
+        broadcastToCloud();
       }
-
-      // 使用公用快速中繼同步（跨裝置 JSON 儲存）
-      try {
-        const res = await fetch(`https://jsonstorage.net/api/items?title=cheer_${state.roomId}`);
-        // 若伺服器響應則解析
-      } catch(e){}
-
-      // 使用 localStorage + BroadcastChannel 實現最穩健的多裝置備用同步
-      syncViaLocalFallback();
     }
 
-    function syncViaLocalFallback() {
-      // 監聽 storage 事件以支援同裝置多瀏覽器分頁
-      window.addEventListener('storage', (e) => {
-        if (e.key === 'cheer_counts' || e.key === 'cheer_items') {
-          loadLocalData();
-          renderAll();
+    // ====== 免密碼：雲端全自動即時同步引擎 ======
+    function startRealtimeSync() {
+      // 1. 先抓取伺服器上最新的快取紀錄
+      pullFromCloud();
+
+      // 2. 建立 SSE (Server-Sent Events) 持續長連線，只要任何裝置變更，立即收到推播
+      try {
+        if (eventSource) eventSource.close();
+        eventSource = new EventSource(`https://ntfy.sh/${SYNC_TOPIC}/sse`);
+
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.event === 'message' && data.message) {
+              const payload = JSON.parse(data.message);
+              // 如果推播的版本比本地新，則立即更新畫面
+              if (payload.timestamp && payload.timestamp > state.lastVersionTime) {
+                applyCloudPayload(payload);
+              }
+            }
+          } catch (e) {
+            // 忽略非 JSON 推播
+          }
+        };
+
+        eventSource.onerror = () => {
+          // 斷線時每 5 秒重試
+          setTimeout(startRealtimeSync, 5000);
+        };
+      } catch (e) {
+        console.error('SSE Error:', e);
+      }
+    }
+
+    // 發布最新數值給所有其他裝置
+    async function broadcastToCloud() {
+      updateSyncStatusText('發布同步中...');
+      const payload = {
+        timestamp: state.lastVersionTime,
+        admins: state.admins,
+        items: state.items,
+        counts: state.counts,
+        logs: state.logs
+      };
+
+      try {
+        await fetch(`https://ntfy.sh/${SYNC_TOPIC}`, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+          headers: {
+            'Title': 'cheer_update',
+            'Tags': 'counter'
+          }
+        });
+        updateSyncStatusText('● 已即時同步最新數值');
+      } catch (e) {
+        updateSyncStatusText('● 離線儲存 (稍後自動同步)');
+      }
+    }
+
+    // 主動從雲端抓取最新
+    async function pullFromCloud() {
+      updateSyncStatusText('抓取雲端資料...');
+      try {
+        const res = await fetch(`https://ntfy.sh/${SYNC_TOPIC}/json?poll=1&since=latest`);
+        const text = await res.text();
+        const lines = text.trim().split('\n');
+        for (let i = lines.length - 1; i >= 0; i--) {
+          try {
+            const obj = JSON.parse(lines[i]);
+            if (obj.message) {
+              const payload = JSON.parse(obj.message);
+              if (payload.timestamp && payload.timestamp > state.lastVersionTime) {
+                applyCloudPayload(payload);
+                break;
+              }
+            }
+          } catch (err) {}
         }
-      });
-    }
-
-    // 透過雲端中繼發送
-    async function pushToCloud() {
-      isCloudUpdating = true;
-      showSyncIndicator('雲端同步中...');
-      try {
-        // 發送到即時中繼站
-        localStorage.setItem('cheer_last_update', Date.now().toString());
-        setTimeout(() => {
-          showSyncIndicator('● 已同步最新數值');
-          isCloudUpdating = false;
-        }, 300);
+        updateSyncStatusText('● 雲端連線正常');
       } catch (e) {
-        isCloudUpdating = false;
+        updateSyncStatusText('● 本機模式');
       }
     }
 
-    function showSyncIndicator(text) {
+    // 套用來自雲端推播的資料
+    function applyCloudPayload(payload) {
+      state.lastVersionTime = payload.timestamp;
+      if (payload.admins) state.admins = payload.admins;
+      if (payload.items) state.items = payload.items;
+      if (payload.counts) state.counts = payload.counts;
+      if (payload.logs) state.logs = payload.logs;
+
+      localStorage.setItem('cheer_admins', JSON.stringify(state.admins));
+      localStorage.setItem('cheer_items', JSON.stringify(state.items));
+      localStorage.setItem('cheer_counts', JSON.stringify(state.counts));
+      localStorage.setItem('cheer_logs', JSON.stringify(state.logs.slice(0, 50)));
+      localStorage.setItem('cheer_version_time', state.lastVersionTime.toString());
+
+      renderAll();
+      updateSyncStatusText('● 剛收到最新同步！');
+    }
+
+    function updateSyncStatusText(msg) {
       const el = document.getElementById('sync-status');
-      if (el) el.textContent = text;
+      if (el) el.textContent = msg;
     }
 
     // 事件監聽與綁定
     function bindEvents() {
-      // 重新整理按鍵
-      document.getElementById('btn-refresh').addEventListener('click', () => {
+      // 重新整理按鍵 (立即重抓雲端最新)
+      document.getElementById('btn-refresh').addEventListener('click', async () => {
         const icon = document.getElementById('refresh-icon');
         icon.classList.add('animate-spin');
-        loadLocalData();
+        await pullFromCloud();
         renderAll();
-        showSyncIndicator('● 已手動更新最新資料');
         setTimeout(() => icon.classList.remove('animate-spin'), 600);
       });
 
-      // 回到預設 / 登出身分按鍵
+      // 回到身分選擇畫面
       document.getElementById('btn-home-reset').addEventListener('click', () => {
         sessionStorage.removeItem('cheer_current_user');
         state.currentUser = null;
@@ -470,25 +509,6 @@
       document.getElementById('btn-switch-user').addEventListener('click', openRoleSelectModal);
       document.getElementById('btn-banner-login').addEventListener('click', openRoleSelectModal);
       document.getElementById('btn-choose-guest').addEventListener('click', () => setUser('guest'));
-
-      // 雲端房間設定
-      document.getElementById('btn-open-cloud').addEventListener('click', () => {
-        document.getElementById('input-room-id').value = state.roomId;
-        document.getElementById('modal-cloud-sync').classList.remove('hidden');
-      });
-      document.getElementById('btn-close-cloud-modal').addEventListener('click', () => {
-        document.getElementById('modal-cloud-sync').classList.add('hidden');
-      });
-      document.getElementById('btn-apply-room').addEventListener('click', () => {
-        const val = document.getElementById('input-room-id').value.trim();
-        if (val) {
-          state.roomId = val;
-          localStorage.setItem('cheer_room_id', val);
-          alert(`已成功連線至同步房間：${val}`);
-          document.getElementById('modal-cloud-sync').classList.add('hidden');
-          fetchFromCloud();
-        }
-      });
 
       // 新增管理者
       document.getElementById('btn-quick-add-admin').addEventListener('click', () => {
@@ -565,7 +585,7 @@
         if (initCount > 0) {
           if (!state.counts[state.currentDate]) state.counts[state.currentDate] = {};
           state.counts[state.currentDate][newItem.id] = initCount;
-          addLog(state.currentUser, `新增項目【${title}】初始份數 +${initCount}`);
+          addLog(state.currentUser, `新增【${title}】初始份數 +${initCount}`);
         } else {
           addLog(state.currentUser, `新增項目【${title}】`);
         }
@@ -580,7 +600,7 @@
         document.getElementById('modal-add-item').classList.add('hidden');
       });
 
-      // 編輯既有項目 Modal 關閉與選色
+      // 編輯既有項目 Modal
       document.getElementById('btn-close-edit-modal').addEventListener('click', () => {
         document.getElementById('modal-edit-item').classList.add('hidden');
       });
@@ -626,7 +646,7 @@
           const temp = state.items[idx];
           state.items[idx] = state.items[idx - 1];
           state.items[idx - 1] = temp;
-          addLog(state.currentUser, `調整項目順序：【${temp.title}】往上移`);
+          addLog(state.currentUser, `調整順序：【${temp.title}】往上移`);
           saveLocalData();
           renderItems();
         } else {
@@ -642,7 +662,7 @@
           const temp = state.items[idx];
           state.items[idx] = state.items[idx + 1];
           state.items[idx + 1] = temp;
-          addLog(state.currentUser, `調整項目順序：【${temp.title}】往下移`);
+          addLog(state.currentUser, `調整順序：【${temp.title}】往下移`);
           saveLocalData();
           renderItems();
         } else {
@@ -845,7 +865,6 @@
       renderLogs();
     }
 
-    // 打開編輯卡片 Modal
     function openEditModal(item) {
       if (state.isGuest) {
         alert('訪客模式無法修改項目屬性。');
@@ -855,7 +874,6 @@
       document.getElementById('edit-item-title').value = item.title;
       document.getElementById('edit-item-subtitle').value = item.subtitle || '';
 
-      // 選取色票
       document.querySelectorAll('#edit-color-palette .color-opt-edit').forEach(b => {
         b.classList.remove('ring-2', 'ring-white');
         if (b.getAttribute('data-color') === item.color) {
@@ -866,7 +884,6 @@
       document.getElementById('modal-edit-item').classList.remove('hidden');
     }
 
-    // 渲染卡片 (精準還原圖片：左邊品名副標、下拉微調，右邊半透明數值區)
     function renderItems() {
       const container = document.getElementById('counter-items-container');
       container.innerHTML = '';
@@ -943,26 +960,22 @@
           </div>
         `;
 
-        // 綁定點擊 +1
         card.querySelector('.main-increment-btn').addEventListener('click', () => {
           updateItemCount(item.id, 1);
         });
 
-        // 展開工具列
         const drawer = card.querySelector('.quick-drawer');
         card.querySelector('.toggle-tool-btn').addEventListener('click', (e) => {
           e.stopPropagation();
           drawer.classList.toggle('hidden');
         });
 
-        // 微調按鍵
         card.querySelector('.btn-sub-10').addEventListener('click', () => updateItemCount(item.id, -10));
         card.querySelector('.btn-sub-1').addEventListener('click', () => updateItemCount(item.id, -1));
         card.querySelector('.btn-add-1').addEventListener('click', () => updateItemCount(item.id, 1));
         card.querySelector('.btn-add-5').addEventListener('click', () => updateItemCount(item.id, 5));
         card.querySelector('.btn-add-10').addEventListener('click', () => updateItemCount(item.id, 10));
 
-        // 自訂份數
         const customInput = card.querySelector('.custom-val-input');
         card.querySelector('.btn-set-custom').addEventListener('click', () => {
           const val = parseInt(customInput.value, 10);
@@ -972,12 +985,10 @@
           }
         });
 
-        // 編輯項目按鍵
         card.querySelector('.btn-open-edit').addEventListener('click', () => {
           openEditModal(item);
         });
 
-        // 刪除項目
         const delBtn = card.querySelector('.btn-delete-card');
         if (delBtn) {
           delBtn.addEventListener('click', () => {
@@ -997,7 +1008,6 @@
       lucide.createIcons();
     }
 
-    // 紀錄流水帳
     function addLog(admin, action) {
       const now = new Date();
       const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
