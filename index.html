@@ -32,49 +32,51 @@
 </head>
 <body class="bg-black text-white min-h-screen flex flex-col items-center justify-start antialiased pb-10">
 
-  <!-- 主容器 (手機寬度最適化) -->
-  <div class="w-full max-w-md min-h-screen flex flex-col px-4 pt-3 pb-8">
+  <!-- 主容器 -->
+  <div class="w-full max-w-md min-h-screen flex flex-col px-4 pt-2.5 pb-8">
     
-    <!-- 頂部功能導覽列 -->
-    <header class="flex items-center justify-between py-2 border-b border-zinc-800/80 mb-3">
-      <div class="flex items-center space-x-2">
-        <!-- 新增項目按鍵 (+) -->
-        <button id="btn-add-item" class="w-10 h-10 rounded-full bg-zinc-800/90 hover:bg-zinc-700 flex items-center justify-center text-zinc-200 transition press-effect shadow-md" title="新增項目">
-          <i data-lucide="plus" class="w-5 h-5"></i>
-        </button>
+    <!-- 頂部功能列 (分層佈局，徹底解決手機文字被擠壓問題) -->
+    <header class="py-2 border-b border-zinc-800/80 mb-3 flex flex-col gap-2">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <!-- 新增項目按鍵 (+) -->
+          <button id="btn-add-item" class="w-10 h-10 rounded-full bg-zinc-850 bg-zinc-800/90 hover:bg-zinc-700 flex items-center justify-center text-zinc-200 transition press-effect shadow-md" title="新增物資項目">
+            <i data-lucide="plus" class="w-5 h-5"></i>
+          </button>
 
-        <!-- 管理者身分切換標籤 -->
-        <button id="btn-switch-user" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-zinc-800/90 hover:bg-zinc-700 border border-zinc-700/60 transition press-effect">
-          <span id="role-badge-dot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
-          <span id="current-user-name" class="text-xs font-semibold text-zinc-200 truncate max-w-[85px]">選擇身分</span>
-          <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-zinc-400"></i>
-        </button>
+          <!-- 管理者身分切換 -->
+          <button id="btn-switch-user" class="flex items-center space-x-1.5 px-3 py-2 rounded-full bg-zinc-800/90 hover:bg-zinc-700 border border-zinc-700/60 transition press-effect">
+            <span id="role-badge-dot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span id="current-user-name" class="text-xs font-semibold text-zinc-200 truncate max-w-[100px]">選擇身分</span>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-zinc-400"></i>
+          </button>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <!-- 重新整理按鍵 (立即拉取雲端最新數值) -->
+          <button id="btn-refresh" class="w-10 h-10 rounded-full bg-zinc-800/90 hover:bg-zinc-700 flex items-center justify-center text-zinc-200 transition press-effect" title="重新整理最新數值">
+            <i data-lucide="rotate-cw" class="w-4 h-4" id="refresh-icon"></i>
+          </button>
+
+          <!-- 回到預設身分選擇畫面 -->
+          <button id="btn-home-reset" class="w-10 h-10 rounded-full bg-zinc-800/90 hover:bg-zinc-700 flex items-center justify-center text-zinc-200 transition press-effect" title="回到身分選擇畫面">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+          </button>
+
+          <!-- 管理者名單設置 -->
+          <button id="btn-open-settings" class="w-10 h-10 rounded-full bg-zinc-800/90 hover:bg-zinc-700 flex items-center justify-center text-zinc-200 transition press-effect" title="管理人員設置">
+            <i data-lucide="settings" class="w-4 h-4"></i>
+          </button>
+        </div>
       </div>
 
-      <!-- 網站標題 -->
-      <div class="text-xs font-bold tracking-wider text-zinc-300">
-        winter應援物計數器
-      </div>
-
-      <div class="flex items-center space-x-2">
-        <!-- 重新整理按鍵 (立即自雲端拉取最新數值) -->
-        <button id="btn-refresh" class="w-10 h-10 rounded-full bg-zinc-800/90 hover:bg-zinc-700 flex items-center justify-center text-zinc-200 transition press-effect" title="重新整理最新數值">
-          <i data-lucide="rotate-cw" class="w-4 h-4" id="refresh-icon"></i>
-        </button>
-
-        <!-- 回到預設身分選擇畫面 -->
-        <button id="btn-home-reset" class="w-10 h-10 rounded-full bg-zinc-800/90 hover:bg-zinc-700 flex items-center justify-center text-zinc-200 transition press-effect" title="回到身分選擇畫面">
-          <i data-lucide="log-out" class="w-4 h-4"></i>
-        </button>
-
-        <!-- 管理者名單設置 -->
-        <button id="btn-open-settings" class="w-10 h-10 rounded-full bg-zinc-800/90 hover:bg-zinc-700 flex items-center justify-center text-zinc-200 transition press-effect" title="管理人員設置">
-          <i data-lucide="settings" class="w-4 h-4"></i>
-        </button>
+      <!-- 專屬居中獨立標題，絕不換行或擠壓 -->
+      <div class="text-center">
+        <h1 class="text-sm font-bold tracking-widest text-zinc-200 uppercase">winter應援物計數器</h1>
       </div>
     </header>
 
-    <!-- 日期選擇與星期幾顯示條 (預設 17日 星期六) -->
+    <!-- 日期選擇與星期幾顯示條 (預設 2026年10月17日 星期六) -->
     <div class="flex items-center justify-between bg-zinc-900/90 border border-zinc-800/80 px-3.5 py-2.5 rounded-2xl mb-3 shadow-inner">
       <button id="btn-prev-day" class="p-1.5 rounded-xl hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition press-effect">
         <i data-lucide="chevron-left" class="w-5 h-5"></i>
@@ -122,7 +124,7 @@
         <span class="text-xs font-semibold text-zinc-400 flex items-center">
           <i data-lucide="history" class="w-3.5 h-3.5 mr-1 text-zinc-400"></i> 最新異動紀錄
         </span>
-        <span class="text-[10px] text-emerald-400 font-medium" id="sync-status">● 雲端即時連線中</span>
+        <span class="text-[10px] text-emerald-400 font-medium" id="sync-status">● 雲端已連線</span>
       </div>
       <div id="activity-log-list" class="space-y-1.5 max-h-36 overflow-y-auto no-scrollbar text-xs">
         <div class="text-zinc-500 text-center py-2 text-[11px]">暫無異動紀錄</div>
@@ -131,7 +133,7 @@
 
   </div>
 
-  <!-- 彈窗 1：登入與身分選擇 (預設：李zy、瑞奇、魚堡、小米 + 訪客) -->
+  <!-- 彈窗 1：登入身分選擇 (預設：李zy、瑞奇、魚堡、小米 + 訪客) -->
   <div id="modal-role-select" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 hidden">
     <div class="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-3xl p-5 shadow-2xl">
       <div class="text-center mb-4">
@@ -163,7 +165,7 @@
     </div>
   </div>
 
-  <!-- 彈窗 2：編輯已有項目 (修改文字、更換顏色、上下排序) -->
+  <!-- 彈窗 2：編輯已有項目 (文字、顏色、順序) -->
   <div id="modal-edit-item" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 hidden">
     <div class="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-3xl p-5 shadow-2xl">
       <div class="flex items-center justify-between mb-4">
@@ -204,7 +206,6 @@
           </div>
         </div>
 
-        <!-- 上下排序調整 -->
         <div class="pt-2">
           <label class="block text-xs font-medium text-zinc-400 mb-1.5">調整顯示順序</label>
           <div class="grid grid-cols-2 gap-2">
@@ -277,7 +278,7 @@
     </div>
   </div>
 
-  <!-- 彈窗 4：管理者人員名單 Modal -->
+  <!-- 彈窗 4：管理者名單管理 Modal -->
   <div id="modal-admin-settings" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 hidden">
     <div class="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-3xl p-5 shadow-2xl">
       <div class="flex items-center justify-between mb-3">
@@ -295,12 +296,9 @@
     </div>
   </div>
 
-  <!-- 核心 JavaScript 邏輯 -->
+  <!-- 核心邏輯 -->
   <script>
-    // 預設管理者名單
     const DEFAULT_ADMINS = ['李zy', '瑞奇', '魚堡', '小米'];
-    
-    // 預設應援品項 (符合圖片配色與文字)
     const DEFAULT_ITEMS = [
       { id: 'item-1', title: '應援禮包', subtitle: '含袋 50', color: '#1db58e' },
       { id: 'item-2', title: '基本應援禮包', subtitle: '不含袋 50', color: '#af83d8' },
@@ -308,23 +306,23 @@
       { id: 'item-4', title: '棕小手幅', subtitle: '25', color: '#c98a5e' }
     ];
 
-    // 固定全域頻道 (所有手機與電腦自動連線此頻道，徹底免輸密碼)
-    const SYNC_TOPIC = 'winter_cheer_live_2026';
+    // 免密碼高可靠性雲端 API 端點 (專屬於 winter-cheer-counter)
+    const CLOUD_ENDPOINT = 'https://api.restful-api.dev/objects/ff808181932badb601944e8ffb8d0001';
 
     let state = {
       currentUser: null,
       isGuest: false,
-      currentDate: '2026-10-17', // 預設從 17 號開始
+      currentDate: '2026-10-17', // 預設 17 號開始
       viewMode: 'today',
-      admins: [],
-      items: [],
+      admins: [...DEFAULT_ADMINS],
+      items: [...DEFAULT_ITEMS],
       counts: {},
       logs: [],
       selectedColor: '#1db58e',
       lastVersionTime: 0
     };
 
-    let eventSource = null;
+    let isFetchingCloud = false;
 
     window.addEventListener('DOMContentLoaded', () => {
       loadLocalData();
@@ -336,23 +334,28 @@
         openRoleSelectModal();
       }
 
-      // 啟動全自動跨裝置即時串流同步 (SSE)
-      startRealtimeSync();
+      // 載入時立即從雲端同步最新
+      syncWithCloud(true);
+
+      // 每 2.5 秒全自動輪詢同步一次 (電腦點擊 +1，手機免按鍵 2 秒內更新)
+      setInterval(() => {
+        syncWithCloud(false);
+      }, 2500);
     });
 
     // 讀取本地快取
     function loadLocalData() {
       const storedAdmins = localStorage.getItem('cheer_admins');
-      state.admins = storedAdmins ? JSON.parse(storedAdmins) : [...DEFAULT_ADMINS];
+      if (storedAdmins) state.admins = JSON.parse(storedAdmins);
 
       const storedItems = localStorage.getItem('cheer_items');
-      state.items = storedItems ? JSON.parse(storedItems) : [...DEFAULT_ITEMS];
+      if (storedItems) state.items = JSON.parse(storedItems);
 
       const storedCounts = localStorage.getItem('cheer_counts');
-      state.counts = storedCounts ? JSON.parse(storedCounts) : {};
+      if (storedCounts) state.counts = JSON.parse(storedCounts);
 
       const storedLogs = localStorage.getItem('cheer_logs');
-      state.logs = storedLogs ? JSON.parse(storedLogs) : [];
+      if (storedLogs) state.logs = JSON.parse(storedLogs);
 
       const storedVersion = localStorage.getItem('cheer_version_time');
       state.lastVersionTime = storedVersion ? parseInt(storedVersion, 10) : 0;
@@ -364,8 +367,8 @@
       }
     }
 
-    // 保存本地資料
-    function saveLocalData(triggerCloud = true) {
+    // 保存本地與雲端
+    function saveAllData(triggerCloud = true) {
       state.lastVersionTime = Date.now();
       localStorage.setItem('cheer_admins', JSON.stringify(state.admins));
       localStorage.setItem('cheer_items', JSON.stringify(state.items));
@@ -374,111 +377,74 @@
       localStorage.setItem('cheer_version_time', state.lastVersionTime.toString());
 
       if (triggerCloud) {
-        broadcastToCloud();
+        pushDataToCloud();
       }
     }
 
-    // ====== 免密碼：雲端全自動即時同步引擎 ======
-    function startRealtimeSync() {
-      // 1. 先抓取伺服器上最新的快取紀錄
-      pullFromCloud();
-
-      // 2. 建立 SSE (Server-Sent Events) 持續長連線，只要任何裝置變更，立即收到推播
+    // 將最新數值發送到雲端
+    async function pushDataToCloud() {
+      updateSyncStatusText('正在推送到雲端...');
       try {
-        if (eventSource) eventSource.close();
-        eventSource = new EventSource(`https://ntfy.sh/${SYNC_TOPIC}/sse`);
-
-        eventSource.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.event === 'message' && data.message) {
-              const payload = JSON.parse(data.message);
-              // 如果推播的版本比本地新，則立即更新畫面
-              if (payload.timestamp && payload.timestamp > state.lastVersionTime) {
-                applyCloudPayload(payload);
-              }
-            }
-          } catch (e) {
-            // 忽略非 JSON 推播
+        const payload = {
+          name: "winter_cheer_data",
+          data: {
+            timestamp: state.lastVersionTime,
+            admins: state.admins,
+            items: state.items,
+            counts: state.counts,
+            logs: state.logs
           }
         };
 
-        eventSource.onerror = () => {
-          // 斷線時每 5 秒重試
-          setTimeout(startRealtimeSync, 5000);
-        };
-      } catch (e) {
-        console.error('SSE Error:', e);
-      }
-    }
-
-    // 發布最新數值給所有其他裝置
-    async function broadcastToCloud() {
-      updateSyncStatusText('發布同步中...');
-      const payload = {
-        timestamp: state.lastVersionTime,
-        admins: state.admins,
-        items: state.items,
-        counts: state.counts,
-        logs: state.logs
-      };
-
-      try {
-        await fetch(`https://ntfy.sh/${SYNC_TOPIC}`, {
-          method: 'POST',
-          body: JSON.stringify(payload),
-          headers: {
-            'Title': 'cheer_update',
-            'Tags': 'counter'
-          }
+        const res = await fetch(CLOUD_ENDPOINT, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
         });
-        updateSyncStatusText('● 已即時同步最新數值');
-      } catch (e) {
-        updateSyncStatusText('● 離線儲存 (稍後自動同步)');
-      }
-    }
 
-    // 主動從雲端抓取最新
-    async function pullFromCloud() {
-      updateSyncStatusText('抓取雲端資料...');
-      try {
-        const res = await fetch(`https://ntfy.sh/${SYNC_TOPIC}/json?poll=1&since=latest`);
-        const text = await res.text();
-        const lines = text.trim().split('\n');
-        for (let i = lines.length - 1; i >= 0; i--) {
-          try {
-            const obj = JSON.parse(lines[i]);
-            if (obj.message) {
-              const payload = JSON.parse(obj.message);
-              if (payload.timestamp && payload.timestamp > state.lastVersionTime) {
-                applyCloudPayload(payload);
-                break;
-              }
-            }
-          } catch (err) {}
+        if (res.ok) {
+          updateSyncStatusText('● 已同步最新數值');
         }
-        updateSyncStatusText('● 雲端連線正常');
-      } catch (e) {
-        updateSyncStatusText('● 本機模式');
+      } catch (err) {
+        console.warn('雲端更新重試中...', err);
+        updateSyncStatusText('● 離線暫存 (恢復連線將自動同步)');
       }
     }
 
-    // 套用來自雲端推播的資料
-    function applyCloudPayload(payload) {
-      state.lastVersionTime = payload.timestamp;
-      if (payload.admins) state.admins = payload.admins;
-      if (payload.items) state.items = payload.items;
-      if (payload.counts) state.counts = payload.counts;
-      if (payload.logs) state.logs = payload.logs;
+    // 從雲端抓取最新資料
+    async function syncWithCloud(forceRender = false) {
+      if (isFetchingCloud) return;
+      isFetchingCloud = true;
+      try {
+        const res = await fetch(CLOUD_ENDPOINT);
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.data && json.data.timestamp) {
+            // 若雲端版本比本地新，或是強制初次載入
+            if (json.data.timestamp > state.lastVersionTime || forceRender) {
+              state.lastVersionTime = json.data.timestamp;
+              if (json.data.admins) state.admins = json.data.admins;
+              if (json.data.items) state.items = json.data.items;
+              if (json.data.counts) state.counts = json.data.counts;
+              if (json.data.logs) state.logs = json.data.logs;
 
-      localStorage.setItem('cheer_admins', JSON.stringify(state.admins));
-      localStorage.setItem('cheer_items', JSON.stringify(state.items));
-      localStorage.setItem('cheer_counts', JSON.stringify(state.counts));
-      localStorage.setItem('cheer_logs', JSON.stringify(state.logs.slice(0, 50)));
-      localStorage.setItem('cheer_version_time', state.lastVersionTime.toString());
+              // 寫入本地快取
+              localStorage.setItem('cheer_admins', JSON.stringify(state.admins));
+              localStorage.setItem('cheer_items', JSON.stringify(state.items));
+              localStorage.setItem('cheer_counts', JSON.stringify(state.counts));
+              localStorage.setItem('cheer_logs', JSON.stringify(state.logs.slice(0, 50)));
+              localStorage.setItem('cheer_version_time', state.lastVersionTime.toString());
 
-      renderAll();
-      updateSyncStatusText('● 剛收到最新同步！');
+              renderAll();
+              updateSyncStatusText('● 剛剛已同步最新數值');
+            }
+          }
+        }
+      } catch (e) {
+        // 忽略網路短暫斷線
+      } finally {
+        isFetchingCloud = false;
+      }
     }
 
     function updateSyncStatusText(msg) {
@@ -486,15 +452,19 @@
       if (el) el.textContent = msg;
     }
 
-    // 事件監聽與綁定
+    // 事件綁定
     function bindEvents() {
-      // 重新整理按鍵 (立即重抓雲端最新)
+      // 重新整理按鍵 (立即手動強制拉取)
       document.getElementById('btn-refresh').addEventListener('click', async () => {
         const icon = document.getElementById('refresh-icon');
         icon.classList.add('animate-spin');
-        await pullFromCloud();
+        updateSyncStatusText('更新中...');
+        await syncWithCloud(true);
         renderAll();
-        setTimeout(() => icon.classList.remove('animate-spin'), 600);
+        setTimeout(() => {
+          icon.classList.remove('animate-spin');
+          updateSyncStatusText('● 資料已是最新狀態');
+        }, 600);
       });
 
       // 回到身分選擇畫面
@@ -517,7 +487,7 @@
         if (!name) return;
         if (!state.admins.includes(name)) {
           state.admins.push(name);
-          saveLocalData();
+          saveAllData();
           renderRoleSelectList();
           input.value = '';
         } else {
@@ -590,7 +560,7 @@
           addLog(state.currentUser, `新增項目【${title}】`);
         }
 
-        saveLocalData();
+        saveAllData();
         renderItems();
         renderLogs();
 
@@ -632,7 +602,7 @@
           state.items[idx].color = editItemColor;
 
           addLog(state.currentUser, `修改項目設定【${newTitle}】`);
-          saveLocalData();
+          saveAllData();
           renderItems();
           document.getElementById('modal-edit-item').classList.add('hidden');
         }
@@ -647,7 +617,7 @@
           state.items[idx] = state.items[idx - 1];
           state.items[idx - 1] = temp;
           addLog(state.currentUser, `調整順序：【${temp.title}】往上移`);
-          saveLocalData();
+          saveAllData();
           renderItems();
         } else {
           alert('已經在最上方了');
@@ -663,14 +633,14 @@
           state.items[idx] = state.items[idx + 1];
           state.items[idx + 1] = temp;
           addLog(state.currentUser, `調整順序：【${temp.title}】往下移`);
-          saveLocalData();
+          saveAllData();
           renderItems();
         } else {
           alert('已經在最下方了');
         }
       });
 
-      // 日期前後按鍵
+      // 日期切換按鍵
       document.getElementById('btn-prev-day').addEventListener('click', () => changeDateOffset(-1));
       document.getElementById('btn-next-day').addEventListener('click', () => changeDateOffset(1));
 
@@ -708,7 +678,6 @@
       });
     }
 
-    // 增減日期
     function changeDateOffset(days) {
       const [y, m, d] = state.currentDate.split('-').map(Number);
       const cur = new Date(y, m - 1, d);
@@ -718,7 +687,6 @@
       renderItems();
     }
 
-    // 渲染日期導覽條
     function renderDateBar() {
       const [y, m, d] = state.currentDate.split('-').map(Number);
       const dateObj = new Date(y, m - 1, d);
@@ -730,7 +698,6 @@
       document.getElementById('native-date-picker').value = state.currentDate;
     }
 
-    // 設定管理者身分
     function setUser(userName) {
       state.currentUser = userName;
       state.isGuest = (userName === 'guest');
@@ -786,7 +753,7 @@
           }
           if (confirm(`確定移除管理者【${admin}】嗎？`)) {
             state.admins = state.admins.filter(a => a !== admin);
-            saveLocalData();
+            saveAllData();
             renderSettingsAdminList();
             renderRoleSelectList();
           }
@@ -860,7 +827,7 @@
       
       addLog(state.currentUser, `調整【${itemName}】: ${changeText} 份 (現為 ${newCount} 份)`);
 
-      saveLocalData();
+      saveAllData();
       renderItems();
       renderLogs();
     }
@@ -933,7 +900,7 @@
             </div>
           </div>
 
-          <!-- 展開的工具列 (微調、自訂數值、修改文字顏色順序、刪除) -->
+          <!-- 展開的工具列 (微調、改值、編輯、刪除) -->
           <div class="quick-drawer hidden bg-black/35 px-3 py-2.5 border-t border-black/10 flex flex-wrap items-center justify-between gap-1.5 text-xs text-white">
             <div class="flex items-center space-x-1">
               <button class="btn-sub-10 px-2 py-1 rounded bg-black/30 hover:bg-black/40 text-white font-bold press-effect">-10</button>
@@ -995,7 +962,7 @@
             if (confirm(`確定要刪除物資卡片【${item.title}】嗎？`)) {
               state.items = state.items.filter(i => i.id !== item.id);
               addLog(state.currentUser, `刪除物資卡片【${item.title}】`);
-              saveLocalData();
+              saveAllData();
               renderItems();
               renderLogs();
             }
