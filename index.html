@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>應援物資計數器</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* 移除 iOS 點擊高亮與選取 */
+    * {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    input, textarea {
+      user-select: auto;
+      -webkit-user-select: auto;
+    }
+    /* 隱藏滾動條但保持滾動 */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    /* 動畫效果 */
+    .press-effect:active {
+      transform: scale(0.97);
+    }
+  </style>
+</head>
+<body class="bg-black text-white min-h-screen flex flex-col items-center justify-start antialiased pb-10">
+
+  <!-- 主容器 (模擬手機寬度) -->
+  <div class="w-full max-w-md min-h-screen flex flex-col px-4 pt-3 pb-8">
+    
+    <!-- 頂部功能導覽列 -->
+    <header class="flex items-center justify-between py-2 border-b border-zinc-800/80 mb-3">
+      <div class="flex items-center space-x-2">
+        <!-- 新增項目按鍵 (+) -->
+        <button id="btn-add-item" class="w-10 h-10 rounded-full bg-zinc-850 hover:bg-zinc-700 bg-zinc-800/80 flex items-center justify-center text-zinc-200 transition press-effect shadow-md" title="新增項目">
+          <i data-lucide="plus" class="w-5 h-5"></i>
+        </button>
+
+        <!-- 管理者身分切換 / 狀態顯示 -->
+        <button id="btn-switch-user" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-zinc-800/90 hover:bg-zinc-700 border border-zinc-700/60 transition press-effect">
+          <span id="role-badge-dot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span id="current-user-name" class="text-xs font-semibold text-zinc-200 truncate max-w-[85px]">選擇管理者</span>
+          <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-zinc-400"></i>
+        </button>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <!-- 重新整理按鍵 (重整頁面獲取/同步最新數據) -->
+        <button id="btn-refresh" class="w-10 h-10 rounded-full bg-zinc-800/80 hover:bg-zinc-700 flex items-center justify-center text-zinc-200 transition press-effect" title="重新整理資料">
+          <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+        </button>
+
+        <!-- 回到預設 / 登出管理者按鍵 -->
+        <button id="btn-home-reset" class="w-10 h-10 rounded-full bg-zinc-800/80 hover:bg-zinc-700 flex items-center justify-center text-zinc-200 transition press-effect" title="回到預設身分選擇畫面">
+          <i data-lucide="log-out" class="w-4 h-4"></i>
+        </button>
+
+        <!-- 管理者設置/名單按鍵 -->
+        <button id="btn-open-settings" class="w-10 h-10 rounded-full bg-zinc-800/80 hover:bg-zinc-700 flex items-center justify-center text-zinc-200 transition press-effect" title="管理人員設置">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- 日期選擇與星期幾顯示條 -->
+    <div class="flex items-center justify-between bg-zinc-900/90 border border-zinc-800/80 px-3.5 py-2.5 rounded-2xl mb-3 shadow-inner">
+      <button id="btn-prev-day" class="p-1.5 rounded-xl hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition press-effect">
+        <i data-lucide="chevron-left" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex flex-col items-center cursor-pointer" id="date-label-container">
+        <div class="flex items-center space-x-2">
+          <span id="display-date" class="text-sm font-bold tracking-wide text-zinc-100">2026年10月16日</span>
+          <span id="display-weekday" class="text-xs px-2 py-0.5 rounded-md bg-zinc-800 text-emerald-400 font-medium">星期五</span>
+        </div>
+        <input type="date" id="native-date-picker" class="sr-only">
+        <span class="text-[10px] text-zinc-400 mt-0.5">點擊切換日期</span>
+      </div>
+
+      <button id="btn-next-day" class="p-1.5 rounded-xl hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition press-effect">
+        <i data-lucide="chevron-right" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <!-- 所有 / 今天 標籤切換 -->
+    <div class="grid grid-cols-2 p-1 bg-zinc-900/90 rounded-2xl border border-zinc-800/70 mb-4">
+      <button id="tab-all" class="py-2 text-xs font-semibold rounded-xl transition text-zinc-400 hover:text-zinc-200">
+        所有
+      </button>
+      <button id="tab-today" class="py-2 text-xs font-semibold rounded-xl transition bg-zinc-800 text-white shadow-sm">
+        今天
+      </button>
+    </div>
+
+    <!-- 訪客唯讀狀態提示條 (當以訪客登入時顯示) -->
+    <div id="guest-alert-banner" class="hidden mb-3 px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between">
+      <div class="flex items-center space-x-2 text-amber-400 text-xs">
+        <i data-lucide="shield-alert" class="w-4 h-4"></i>
+        <span>目前為<strong>訪客模式</strong>：僅供即時查閱，無法調整份數。</span>
+      </div>
+      <button id="btn-banner-login" class="text-[11px] underline text-amber-300 hover:text-amber-100">切換管理者</button>
+    </div>
+
+    <!-- 計數器卡片列表區 -->
+    <div id="counter-items-container" class="space-y-3 flex-1">
+      <!-- 卡片由 JS 動態生成 -->
+    </div>
+
+    <!-- 最新操作紀錄 (動態流水帳) -->
+    <div class="mt-6 pt-4 border-t border-zinc-900">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-semibold text-zinc-400 flex items-center">
+          <i data-lucide="history" class="w-3.5 h-3.5 mr-1 text-zinc-400"></i> 最新異動紀錄 (即時同步)
+        </span>
+        <span class="text-[10px] text-zinc-400" id="sync-status">● 已同步最新狀態</span>
+      </div>
+      <div id="activity-log-list" class="space-y-1.5 max-h-36 overflow-y-auto no-scrollbar text-xs">
+        <div class="text-zinc-400 text-center py-2 text-[11px]">暫無異動紀錄</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 彈窗 1：登入與管理者身分選擇 (初次載入或回到預設) -->
+  <div id="modal-role-select" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 hidden">
+    <div class="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-3xl p-5 shadow-2xl">
+      <div class="text-center mb-4">
+        <div class="inline-flex p-3 bg-zinc-800 rounded-2xl mb-2 text-emerald-400">
+          <i data-lucide="users" class="w-6 h-6"></i>
+        </div>
+        <h2 class="text-lg font-bold text-white">請選擇您的身分</h2>
+        <p class="text-xs text-zinc-400 mt-1">選定身分後異動紀錄將自動註明，或以訪客純查閱</p>
+      </div>
+
+      <!-- 管理者列表 -->
+      <div class="space-y-2 mb-4 max-h-60 overflow-y-auto no-scrollbar" id="manager-selection-list">
+        <!-- 動態帶入 -->
+      </div>
+
+      <!-- 訪客模式選項 -->
+      <button id="btn-choose-guest" class="w-full py-3 px-4 rounded-2xl bg-zinc-800/80 hover:bg-zinc-700/80 border border-zinc-700/40 text-zinc-300 font-medium text-xs flex items-center justify-between transition press-effect">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="eye" class="w-4 h-4 text-zinc-400"></i>
+          <span>訪客模式 (唯讀查閱)</span>
+        </div>
+        <span class="text-[10px] text-zinc-400 bg-zinc-900 px-2 py-0.5 rounded">不可編輯</span>
+      </button>
+
+      <!-- 新增管理者折疊輸入框 -->
+      <div class="mt-4 pt-3 border-t border-zinc-800">
+        <div class="flex space-x-2">
+          <input type="text" id="input-new-admin-name" placeholder="新增管理者姓名..." class="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500">
+          <button id="btn-quick-add-admin" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold press-effect">新增</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 彈窗 2：新增物資項目 Modal -->
+  <div id="modal-add-item" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 hidden">
+    <div class="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-3xl p-5 shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-base font-bold text-white flex items-center">
+          <i data-lucide="package-plus" class="w-4 h-4 mr-2 text-emerald-400"></i> 新增物資卡片
+        </h3>
+        <button id="btn-close-add-modal" class="p-1 rounded-full text-zinc-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-medium text-zinc-400 mb-1">物資名稱</label>
+          <input type="text" id="new-item-title" placeholder="例：特製應援手幅" class="w-full bg-zinc-950 border border-zinc-850 border-zinc-800 rounded-xl px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-zinc-400 mb-1">副標說明 (選填)</label>
+          <input type="text" id="new-item-subtitle" placeholder="例：含提袋 / 規格" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-zinc-400 mb-1">起始份數</label>
+          <input type="number" id="new-item-initial-count" value="0" min="0" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-zinc-400 mb-1.5">卡片主題色</label>
+          <div class="grid grid-cols-5 gap-2" id="color-palette-picker">
+            <button type="button" data-color="#14b8a6" class="color-opt w-full h-8 rounded-lg bg-teal-500 ring-2 ring-white"></button>
+            <button type="button" data-color="#a881d8" class="color-opt w-full h-8 rounded-lg bg-[#a881d8]"></button>
+            <button type="button" data-color="#3b526d" class="color-opt w-full h-8 rounded-lg bg-[#3b526d]"></button>
+            <button type="button" data-color="#c68a5c" class="color-opt w-full h-8 rounded-lg bg-[#c68a5c]"></button>
+            <button type="button" data-color="#4f46e5" class="color-opt w-full h-8 rounded-lg bg-indigo-600"></button>
+            <button type="button" data-color="#e11d48" class="color-opt w-full h-8 rounded-lg bg-rose-600"></button>
+            <button type="button" data-color="#d97706" class="color-opt w-full h-8 rounded-lg bg-amber-600"></button>
+            <button type="button" data-color="#059669" class="color-opt w-full h-8 rounded-lg bg-emerald-600"></button>
+            <button type="button" data-color="#2563eb" class="color-opt w-full h-8 rounded-lg bg-blue-600"></button>
+            <button type="button" data-color="#52525b" class="color-opt w-full h-8 rounded-lg bg-zinc-600"></button>
+          </div>
+        </div>
+
+        <button id="btn-confirm-add-item" class="w-full mt-2 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold shadow-lg transition press-effect">
+          確認新增項目
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 彈窗 3：管理者人員管理 Modal -->
+  <div id="modal-admin-settings" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 hidden">
+    <div class="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-3xl p-5 shadow-2xl">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-base font-bold text-white flex items-center">
+          <i data-lucide="user-check" class="w-4 h-4 mr-2 text-emerald-400"></i> 管理人員清單
+        </h3>
+        <button id="btn-close-settings-modal" class="p-1 rounded-full text-zinc-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <p class="text-xs text-zinc-400 mb-3">您可以管理或移除管理者姓名：</p>
+      <div id="settings-admin-list" class="space-y-2 max-h-56 overflow-y-auto no-scrollbar mb-4">
+        <!-- 動態帶入 -->
+      </div>
+      <button id="btn-done-settings" class="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl text-xs font-semibold transition">
+        完成
+      </button>
+    </div>
+  </div>
+
+  <!-- 核心 JavaScript 邏輯 -->
+  <script>
+    // 預設管理者
+    const DEFAULT_ADMINS = ['李zy', '瑞奇', '魚堡', '小米'];
+
+    // 預設應援項目 (還原照片色彩與內容)
+    const DEFAULT_ITEMS = [
+      { id: 'item-1', title: '應援禮包', subtitle: '含袋 50', color: '#1db58e' },
+      { id: 'item-2', title: '基本應援禮包', subtitle: '不含袋 50', color: '#af83d8' },
+      { id: 'item-3', title: '黑小手幅', subtitle: '25', color: '#38536f' },
+      { id: 'item-4', title: '棕小手幅', subtitle: '25', color: '#c98a5e' }
+    ];
+
+    // 全域狀態
+    let state = {
+      currentUser: null,       // '李zy' | '瑞奇' ... 或 'guest'
+      isGuest: false,          // 是否唯讀
+      currentDate: getTodayString(), // YYYY-MM-DD
+      viewMode: 'today',       // 'today' | 'all'
+      admins: [],
+      items: [],
+      counts: {},              // { "YYYY-MM-DD": { "item-1": 12, ... } }
+      logs: [],
+      selectedColor: '#14b8a6'
+    };
+
+    // 跨頁籤即時同步廣播通道
+    const syncChannel = new BroadcastChannel('cheer_counter_sync_channel');
+
+    // 初始化程式
+    window.addEventListener('DOMContentLoaded', () => {
+      loadStorageData();
+      lucide.createIcons();
+      bindEvents();
+      renderAll();
+
+      // 檢查是否已選擇身分，若無則跳出身分選擇 Modal
+      if (!state.currentUser) {
+        openRoleSelectModal();
+      }
+    });
+
+    // 監聽廣播同步
+    syncChannel.onmessage = (event) => {
+      if (event.data && event.data.type === 'DATA_UPDATE') {
+        loadStorageData();
+        renderAll();
+        showSyncFeedback();
+      }
+    };
+
+    function showSyncFeedback() {
+      const el = document.getElementById('sync-status');
+      if (el) {
+        el.textContent = '● 剛剛已同步最新數值';
+        el.className = 'text-[10px] text-emerald-400 font-medium';
+        setTimeout(() => {
+          el.textContent = '● 已同步最新狀態';
+          el.className = 'text-[10px] text-zinc-400';
+        }, 2500);
+      }
+    }
+
+    // 取得今天 YYYY-MM-DD 字串
+    function getTodayString() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    // 讀取 localStorage
+    function loadStorageData() {
+      const storedAdmins = localStorage.getItem('cheer_admins');
+      state.admins = storedAdmins ? JSON.parse(storedAdmins) : [...DEFAULT_ADMINS];
+
+      const storedItems = localStorage.getItem('cheer_items');
+      state.items = storedItems ? JSON.parse(storedItems) : [...DEFAULT_ITEMS];
+
+      const storedCounts = localStorage.getItem('cheer_counts');
+      state.counts = storedCounts ? JSON.parse(storedCounts) : {};
+
+      const storedLogs = localStorage.getItem('cheer_logs');
+      state.logs = storedLogs ? JSON.parse(storedLogs) : [];
+
+      const storedUser = sessionStorage.getItem('cheer_current_user');
+      if (storedUser) {
+        state.currentUser = storedUser;
+        state.isGuest = (storedUser === 'guest');
+      }
+    }
+
+    // 寫入 localStorage 並廣播
+    function saveStorageData(triggerBroadcast = true) {
+      localStorage.setItem('cheer_admins', JSON.stringify(state.admins));
+      localStorage.setItem('cheer_items', JSON.stringify(state.items));
+      localStorage.setItem('cheer_counts', JSON.stringify(state.counts));
+      localStorage.setItem('cheer_logs', JSON.stringify(state.logs.slice(0, 50)));
+
+      if (triggerBroadcast) {
+        syncChannel.postMessage({ type: 'DATA_UPDATE', timestamp: Date.now() });
+      }
+    }
+
+    // 綁定所有事件
+    function bindEvents() {
+      // 重新整理
+      document.getElementById('btn-refresh').addEventListener('click', () => {
+        loadStorageData();
+        renderAll();
+        showSyncFeedback();
+      });
+
+      // 回到預設 / 登出管理者按鍵
+      document.getElementById('btn-home-reset').addEventListener('click', () => {
+        sessionStorage.removeItem('cheer_current_user');
+        state.currentUser = null;
+        state.isGuest = false;
+        openRoleSelectModal();
+      });
+
+      // 頂部身分切換
+      document.getElementById('btn-switch-user').addEventListener('click', () => {
+        openRoleSelectModal();
+      });
+
+      // 訪客橫幅點擊切換
+      document.getElementById('btn-banner-login').addEventListener('click', () => {
+        openRoleSelectModal();
+      });
+
+      // 選擇訪客模式
+      document.getElementById('btn-choose-guest').addEventListener('click', () => {
+        setUser('guest');
+      });
+
+      // 快速新增管理者
+      document.getElementById('btn-quick-add-admin').addEventListener('click', () => {
+        const input = document.getElementById('input-new-admin-name');
+        const name = input.value.trim();
+        if (!name) return;
+        if (!state.admins.includes(name)) {
+          state.admins.push(name);
+          saveStorageData();
+          renderRoleSelectList();
+          input.value = '';
+        } else {
+          alert('該管理者名稱已存在');
+        }
+      });
+
+      // 開啟與關閉設定
+      document.getElementById('btn-open-settings').addEventListener('click', () => {
+        if (state.isGuest) {
+          alert('訪客模式無法進行人員管理設定。');
+          return;
+        }
+        renderSettingsAdminList();
+        document.getElementById('modal-admin-settings').classList.remove('hidden');
+      });
+      document.getElementById('btn-close-settings-modal').addEventListener('click', () => {
+        document.getElementById('modal-admin-settings').classList.add('hidden');
+      });
+      document.getElementById('btn-done-settings').addEventListener('click', () => {
+        document.getElementById('modal-admin-settings').classList.add('hidden');
+      });
+
+      // 開啟與關閉新增卡片 Modal
+      document.getElementById('btn-add-item').addEventListener('click', () => {
+        if (state.isGuest) {
+          alert('訪客模式無法新增物資項目。');
+          return;
+        }
+        document.getElementById('modal-add-item').classList.remove('hidden');
+      });
+      document.getElementById('btn-close-add-modal').addEventListener('click', () => {
+        document.getElementById('modal-add-item').classList.add('hidden');
+      });
+
+      // 選擇顏色色票
+      document.querySelectorAll('#color-palette-picker .color-opt').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#color-palette-picker .color-opt').forEach(b => b.classList.remove('ring-2', 'ring-white'));
+          btn.classList.add('ring-2', 'ring-white');
+          state.selectedColor = btn.getAttribute('data-color');
+        });
+      });
+
+      // 確認新增物資卡片
+      document.getElementById('btn-confirm-add-item').addEventListener('click', () => {
+        const title = document.getElementById('new-item-title').value.trim();
+        const subtitle = document.getElementById('new-item-subtitle').value.trim();
+        const initCount = parseInt(document.getElementById('new-item-initial-count').value, 10) || 0;
+
+        if (!title) {
+          alert('請輸入物資名稱');
+          return;
+        }
+
+        const newItem = {
+          id: 'item-' + Date.now(),
+          title: title,
+          subtitle: subtitle,
+          color: state.selectedColor || '#14b8a6'
+        };
+
+        state.items.push(newItem);
+
+        // 若有起始份數，寫入當前日期
+        if (initCount > 0) {
+          if (!state.counts[state.currentDate]) state.counts[state.currentDate] = {};
+          state.counts[state.currentDate][newItem.id] = initCount;
+          addLog(state.currentUser, `新增項目【${title}】初始份數 +${initCount}`);
+        } else {
+          addLog(state.currentUser, `新增物資卡片【${title}】`);
+        }
+
+        saveStorageData();
+        renderItems();
+        renderLogs();
+
+        // 重置並關閉
+        document.getElementById('new-item-title').value = '';
+        document.getElementById('new-item-subtitle').value = '';
+        document.getElementById('new-item-initial-count').value = '0';
+        document.getElementById('modal-add-item').classList.add('hidden');
+      });
+
+      // 日期前後按鍵
+      document.getElementById('btn-prev-day').addEventListener('click', () => changeDateOffset(-1));
+      document.getElementById('btn-next-day').addEventListener('click', () => changeDateOffset(1));
+
+      // 原生日曆切換
+      const nativePicker = document.getElementById('native-date-picker');
+      document.getElementById('date-label-container').addEventListener('click', () => {
+        nativePicker.showPicker ? nativePicker.showPicker() : nativePicker.click();
+      });
+      nativePicker.addEventListener('change', (e) => {
+        if (e.target.value) {
+          state.currentDate = e.target.value;
+          renderDateBar();
+          renderItems();
+        }
+      });
+
+      // 標籤切換 (所有 / 今天)
+      const tabAll = document.getElementById('tab-all');
+      const tabToday = document.getElementById('tab-today');
+
+      tabAll.addEventListener('click', () => {
+        state.viewMode = 'all';
+        tabAll.className = 'py-2 text-xs font-semibold rounded-xl transition bg-zinc-800 text-white shadow-sm';
+        tabToday.className = 'py-2 text-xs font-semibold rounded-xl transition text-zinc-400 hover:text-zinc-200';
+        renderItems();
+      });
+
+      tabToday.addEventListener('click', () => {
+        state.viewMode = 'today';
+        state.currentDate = getTodayString();
+        tabToday.className = 'py-2 text-xs font-semibold rounded-xl transition bg-zinc-800 text-white shadow-sm';
+        tabAll.className = 'py-2 text-xs font-semibold rounded-xl transition text-zinc-400 hover:text-zinc-200';
+        renderDateBar();
+        renderItems();
+      });
+    }
+
+    // 增減日期
+    function changeDateOffset(days) {
+      const [y, m, d] = state.currentDate.split('-').map(Number);
+      const cur = new Date(y, m - 1, d);
+      cur.setDate(cur.getDate() + days);
+      state.currentDate = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}-${String(cur.getDate()).padStart(2, '0')}`;
+      renderDateBar();
+      renderItems();
+    }
+
+    // 渲染日期導覽條
+    function renderDateBar() {
+      const [y, m, d] = state.currentDate.split('-').map(Number);
+      const dateObj = new Date(y, m - 1, d);
+      const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+      const weekStr = weekDays[dateObj.getDay()];
+
+      document.getElementById('display-date').textContent = `${y}年${m}月${d}日`;
+      document.getElementById('display-weekday').textContent = weekStr;
+      document.getElementById('native-date-picker').value = state.currentDate;
+    }
+
+    // 設定目前使用者
+    function setUser(userName) {
+      state.currentUser = userName;
+      state.isGuest = (userName === 'guest');
+      sessionStorage.setItem('cheer_current_user', userName);
+
+      document.getElementById('modal-role-select').classList.add('hidden');
+      renderUserStatus();
+      renderItems();
+    }
+
+    // 打開身分選擇彈窗
+    function openRoleSelectModal() {
+      renderRoleSelectList();
+      document.getElementById('modal-role-select').classList.remove('hidden');
+    }
+
+    // 渲染身分選擇按鈕
+    function renderRoleSelectList() {
+      const container = document.getElementById('manager-selection-list');
+      container.innerHTML = '';
+
+      state.admins.forEach(admin => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full py-3 px-4 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-750 border-zinc-700/60 text-white font-medium text-xs flex items-center justify-between transition press-effect';
+        btn.innerHTML = `
+          <div class="flex items-center space-x-2">
+            <span class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[11px]">${admin.substring(0, 1)}</span>
+            <span>${admin}</span>
+          </div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-zinc-400"></i>
+        `;
+        btn.addEventListener('click', () => setUser(admin));
+        container.appendChild(btn);
+      });
+      lucide.createIcons();
+    }
+
+    // 渲染管理者設定列表
+    function renderSettingsAdminList() {
+      const container = document.getElementById('settings-admin-list');
+      container.innerHTML = '';
+
+      state.admins.forEach(admin => {
+        const item = document.createElement('div');
+        item.className = 'flex items-center justify-between p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs';
+        item.innerHTML = `
+          <span class="text-zinc-200 font-medium">${admin}</span>
+          <button class="delete-admin text-rose-400 hover:text-rose-300 p-1">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+        `;
+        item.querySelector('.delete-admin').addEventListener('click', () => {
+          if (state.admins.length <= 1) {
+            alert('至少需保留一名管理者');
+            return;
+          }
+          if (confirm(`確定移除管理者【${admin}】嗎？`)) {
+            state.admins = state.admins.filter(a => a !== admin);
+            saveStorageData();
+            renderSettingsAdminList();
+            renderRoleSelectList();
+          }
+        });
+        container.appendChild(item);
+      });
+      lucide.createIcons();
+    }
+
+    // 渲染頂部與權限橫幅
+    function renderUserStatus() {
+      const nameEl = document.getElementById('current-user-name');
+      const dotEl = document.getElementById('role-badge-dot');
+      const banner = document.getElementById('guest-alert-banner');
+
+      if (!state.currentUser) {
+        nameEl.textContent = '選擇身分';
+        dotEl.className = 'w-2 h-2 rounded-full bg-zinc-500';
+        banner.classList.add('hidden');
+        return;
+      }
+
+      if (state.isGuest) {
+        nameEl.textContent = '訪客 (唯讀)';
+        dotEl.className = 'w-2 h-2 rounded-full bg-amber-400';
+        banner.classList.remove('hidden');
+      } else {
+        nameEl.textContent = state.currentUser;
+        dotEl.className = 'w-2 h-2 rounded-full bg-emerald-400';
+        banner.classList.add('hidden');
+      }
+    }
+
+    // 取得指定日期的卡片份數
+    function getItemCount(itemId) {
+      if (state.viewMode === 'all') {
+        // 加總所有日期的份數
+        let total = 0;
+        Object.keys(state.counts).forEach(dateKey => {
+          if (state.counts[dateKey][itemId]) {
+            total += state.counts[dateKey][itemId];
+          }
+        });
+        return total;
+      } else {
+        // 單日份數
+        return (state.counts[state.currentDate] && state.counts[state.currentDate][itemId]) || 0;
+      }
+    }
+
+    // 更新份數
+    function updateItemCount(itemId, delta, customValue = null) {
+      if (state.isGuest) {
+        alert('訪客模式無法修改份數。請先切換至管理者身分！');
+        return;
+      }
+
+      if (state.viewMode === 'all') {
+        alert('「所有」模式為歷史累計查閱，欲直接調整份數請切換至「今天」或指定單日。');
+        return;
+      }
+
+      if (!state.counts[state.currentDate]) {
+        state.counts[state.currentDate] = {};
+      }
+
+      const current = state.counts[state.currentDate][itemId] || 0;
+      let newCount = customValue !== null ? customValue : (current + delta);
+      if (newCount < 0) newCount = 0;
+
+      state.counts[state.currentDate][itemId] = newCount;
+
+      const item = state.items.find(i => i.id === itemId);
+      const itemName = item ? item.title : '未知項目';
+      const changeText = (newCount - current) >= 0 ? `+${newCount - current}` : `${newCount - current}`;
+      
+      addLog(state.currentUser, `調整【${itemName}】: ${changeText} 份 (現為 ${newCount} 份)`);
+
+      saveStorageData();
+      renderItems();
+      renderLogs();
+    }
+
+    // 渲染計數器卡片
+    function renderItems() {
+      const container = document.getElementById('counter-items-container');
+      container.innerHTML = '';
+
+      if (state.items.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-12 text-zinc-600">
+            <i data-lucide="package" class="w-10 h-10 mx-auto mb-2 text-zinc-700"></i>
+            <p class="text-sm">尚未建立物資項目</p>
+            <p class="text-xs text-zinc-600 mt-1">點擊左上方「+」按鍵即可新增</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      state.items.forEach(item => {
+        const count = getItemCount(item.id);
+
+        const card = document.createElement('div');
+        card.className = 'w-full rounded-2xl overflow-hidden shadow-lg transition select-none flex flex-col';
+        card.style.backgroundColor = item.color || '#1db58e';
+
+        // 卡片主體 HTML (精準還原圖片中：左側名稱/份數/下拉標記，右側半透明圓角大數字區塊)
+        card.innerHTML = `
+          <div class="flex items-stretch min-h-[76px] relative">
+            <!-- 左側資訊與操作區 -->
+            <div class="flex-1 flex flex-col justify-between p-3.5 text-zinc-950">
+              <div>
+                <div class="font-bold text-[15px] leading-tight text-white/95 tracking-wide drop-shadow-sm flex items-center">
+                  ${item.title}${item.subtitle ? `<span class="ml-2 text-xs font-normal text-white/80">(${item.subtitle})</span>` : ''}
+                </div>
+              </div>
+              
+              <!-- 下拉微調開關按鍵 -->
+              <div class="flex items-center space-x-2 mt-1">
+                <button class="toggle-tool-btn p-1 -ml-1 text-white/70 hover:text-white transition press-effect" title="展開快捷工具">
+                  <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- 右側點擊加數區 (依照截圖微暗半透明色塊，點擊 +1) -->
+            <div class="w-[128px] bg-black/20 hover:bg-black/25 active:bg-black/35 transition cursor-pointer flex items-center justify-center border-l border-white/10 main-increment-btn" title="${state.isGuest ? '訪客模式唯讀' : '點擊 +1 份'}">
+              <span class="text-4xl font-mono font-medium text-white/90 tracking-tighter drop-shadow">
+                ${count}
+              </span>
+            </div>
+          </div>
+
+          <!-- 展開的快速微調面板 (預設隱藏) -->
+          <div class="quick-drawer hidden bg-black/35 px-3 py-2.5 border-t border-black/10 flex flex-wrap items-center justify-between gap-1.5 text-xs text-white">
+            <div class="flex items-center space-x-1">
+              <button class="btn-sub-10 px-2 py-1 rounded bg-black/30 hover:bg-black/40 text-white font-bold press-effect">-10</button>
+              <button class="btn-sub-1 px-2.5 py-1 rounded bg-black/30 hover:bg-black/40 text-white font-bold press-effect">-1</button>
+              <button class="btn-add-1 px-2.5 py-1 rounded bg-black/30 hover:bg-black/40 text-white font-bold press-effect">+1</button>
+              <button class="btn-add-5 px-2 py-1 rounded bg-black/30 hover:bg-black/40 text-white font-bold press-effect">+5</button>
+              <button class="btn-add-10 px-2 py-1 rounded bg-black/30 hover:bg-black/40 text-white font-bold press-effect">+10</button>
+            </div>
+            <div class="flex items-center space-x-1">
+              <input type="number" min="0" placeholder="指定" class="custom-val-input w-14 bg-black/40 border border-white/20 rounded px-1.5 py-0.5 text-xs text-white text-center focus:outline-none">
+              <button class="btn-set-custom px-2 py-1 rounded bg-white/20 hover:bg-white/30 text-white text-[11px] font-medium press-effect">設定</button>
+              ${!state.isGuest ? `
+                <button class="btn-delete-card p-1 text-white/50 hover:text-rose-300 ml-1" title="刪除此項目">
+                  <i data-lucide="trash" class="w-3.5 h-3.5"></i>
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+
+        // 綁定右側點擊加一
+        const incBtn = card.querySelector('.main-increment-btn');
+        incBtn.addEventListener('click', () => {
+          updateItemCount(item.id, 1);
+        });
+
+        // 展開 / 收合工具列
+        const toggleBtn = card.querySelector('.toggle-tool-btn');
+        const drawer = card.querySelector('.quick-drawer');
+        toggleBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          drawer.classList.toggle('hidden');
+        });
+
+        // 微調按鍵
+        card.querySelector('.btn-sub-10').addEventListener('click', () => updateItemCount(item.id, -10));
+        card.querySelector('.btn-sub-1').addEventListener('click', () => updateItemCount(item.id, -1));
+        card.querySelector('.btn-add-1').addEventListener('click', () => updateItemCount(item.id, 1));
+        card.querySelector('.btn-add-5').addEventListener('click', () => updateItemCount(item.id, 5));
+        card.querySelector('.btn-add-10').addEventListener('click', () => updateItemCount(item.id, 10));
+
+        // 自訂份數設定
+        const customInput = card.querySelector('.custom-val-input');
+        card.querySelector('.btn-set-custom').addEventListener('click', () => {
+          const val = parseInt(customInput.value, 10);
+          if (!isNaN(val) && val >= 0) {
+            updateItemCount(item.id, 0, val);
+            customInput.value = '';
+          }
+        });
+
+        // 刪除此卡片 (非訪客)
+        const delBtn = card.querySelector('.btn-delete-card');
+        if (delBtn) {
+          delBtn.addEventListener('click', () => {
+            if (confirm(`確定要刪除物資卡片【${item.title}】嗎？`)) {
+              state.items = state.items.filter(i => i.id !== item.id);
+              addLog(state.currentUser, `刪除物資卡片【${item.title}】`);
+              saveStorageData();
+              renderItems();
+              renderLogs();
+            }
+          });
+        }
+
+        container.appendChild(card);
+      });
+
+      lucide.createIcons();
+    }
+
+    // 加入動態操作紀錄
+    function addLog(admin, action) {
+      const now = new Date();
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+      
+      state.logs.unshift({
+        time: timeStr,
+        admin: admin || '管理者',
+        action: action
+      });
+
+      if (state.logs.length > 50) {
+        state.logs.pop();
+      }
+    }
+
+    // 渲染異動紀錄列表
+    function renderLogs() {
+      const container = document.getElementById('activity-log-list');
+      if (state.logs.length === 0) {
+        container.innerHTML = '<div class="text-zinc-600 text-center py-2 text-[11px]">暫無異動紀錄</div>';
+        return;
+      }
+
+      container.innerHTML = state.logs.slice(0, 8).map(log => `
+        <div class="flex items-center justify-between py-1 px-2.5 rounded-lg bg-zinc-900/60 border border-zinc-850/60 text-[11px]">
+          <div class="flex items-center space-x-1.5 truncate">
+            <span class="text-zinc-500 font-mono">${log.time}</span>
+            <span class="font-bold text-emerald-400/90">${log.admin}</span>
+            <span class="text-zinc-300 truncate">${log.action}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 統一重新渲染
+    function renderAll() {
+      renderDateBar();
+      renderUserStatus();
+      renderItems();
+      renderLogs();
+    }
+  </script>
+</body>
+</html>
